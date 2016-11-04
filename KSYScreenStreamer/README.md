@@ -12,8 +12,10 @@ Android 5.0 提供了[MediaProjectionManager](https://developer.android.com/refe
     * libs/[armeabi-v7a|arm64-v8a|x86]: 各平台的so库
     * libs/ksylive4.0.jar: 推流SDK jar包
     * libs/libksystat.jar: 金山云统计模块
+
 工程结构图：
-![](https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_package.png)
+
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_package.png" width = "799.3" height = "614" alt="图片名称" align=center />
 
 ## 2、功能特点
 基于KSYStreamer4.x，详细参考：[KSYStramer说明](https://github.com/ksvc/KSYStreamer_Android/wiki)
@@ -38,4 +40,7 @@ Android 5.0 提供了[MediaProjectionManager](https://developer.android.com/refe
 * [悬浮摄像头窗口使用说明](https://github.com/ksvc/KSYScreenStreamer_Android/wiki/Screen_Streamer_CameraFlowView)
 
 ## 6. 效果展示
-![](https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/Screen_game_p.png)
+* 竖屏（含Camera悬浮窗口）：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/Screen_game_p.png" width = "180" height = "320" alt="图片名称" align=center />
+* 横屏（含Camera悬浮窗口）：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/Screen_play_l.png" width = "320" height = "180" alt="图片名称" align=center />
