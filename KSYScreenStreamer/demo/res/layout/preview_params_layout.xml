@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:background="@color/recorder_bg_new" >
+    <RadioGroup
+        android:id="@+id/resolution_group"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/r360p"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="360P" />
+
+        <RadioButton
+            android:id="@+id/r480p"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false"
+            android:text="480P" />
+
+        <RadioButton
+            android:id="@+id/r540p"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false"
+            android:text="540P" />
+
+        <RadioButton
+            android:id="@+id/r720p"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false"
+            android:text="720P" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:id="@+id/frameRate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/orientation_group">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="采集帧率"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/frameRatePicker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="15" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/preview_params_confim"
+        android:layout_width="100dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:text="确定"/>
+
+</LinearLayout>
