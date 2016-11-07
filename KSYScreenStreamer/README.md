@@ -1,23 +1,36 @@
-# 金山云`屏幕直播_Android`使用说明
-Android 5.0 提供了[MediaProjectionManager](https://developer.android.com/reference/android/media/projection/MediaProjectionManager.html)相关类来支持录屏功能  ,金山云`屏幕直播_Android`就是基于Android 5.0的该功能开发的。
+# 金山云`录屏直播_Android`使用说明
+* `录屏直播_Android`是基于Android 5.0的录屏功能开发
+  官方资料参考：[MediaProjectionManager](https://developer.android.com/reference/android/media/projection/MediaProjectionManager.html)相关类。
 
-`屏幕直播_Android`是基于[KSYStreamer](https://github.com/ksvc/KSYStreamer_Android)组件化方式开发完成，其用方法基本同KSYStreamer
+* `录屏直播_Android`是基于KSYStreamer的组件化功能开发完成，其使用方法基本同[KSYStreamer](https://github.com/ksvc/KSYStreamer_Android)
 
-`屏幕直播_Android`直接open录屏相关及组件化方式的源码，开发者可以直接以lib库的形式在Demo中引入。
+* `录屏直播_Android`直接open录屏相关及组件化方式的源码，开发者可以直接以lib库的形式在目标工程中引入。
 
-## 1. KSYScreenStreamer_Android 工程介绍：
+## 1. 录屏组件化集成介绍
+KSYStreamer_组件化集成结构图：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/ksystreamer_connect.png" width = "1105" height = "718" alt="图片名称" align=center />
+
+KSYScreenStreamer_组件化集成结构图：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_connect.png" width = "1105" height = "718" alt="图片名称" align=center />
+
+## 2. KSYScreenStreamer_Android 工程介绍
 * libscreenstreamer：录屏libs库，依赖KSYStreamer提供录屏功能类及kit类
 * demo：录屏demo示例工程
-* libscreenstreamer/libs: 集成KSYStreamer的SDK需要的所有库文件
-    * libs/[armeabi-v7a|arm64-v8a|x86]: 各平台的so库
-    * libs/ksylive4.0.jar: 推流SDK jar包
-    * libs/libksystat.jar: 金山云统计模块
 
 工程结构图：
 
 <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_package.png" width = "799.3" height = "614" alt="图片名称" align=center />
 
-## 2、功能特点
+## 3. 关键接口介绍
+* ScreenCaptureAssistantActivity:接收录屏权限申请回调，触发录屏开始，需要在AndroidMainFest中声明该类
+* KSYScreenStreamer.OnInfoListener:推流状态回调，无KSY_STREAMER_CAMERA_INIT_DONE回调，无Camera相关回调
+* KSYScreenStreamer.OnErrorListener:推流错误回调，增加KSY_STREAMER_SCREEN_RECORD_XXX险关错误回调
+* KSYCameraPreview.OnInfoListener:悬浮窗口打开时，摄像头状态回调
+* KSYCameraPreview.OnErrorListener:悬浮窗口打开时，摄像头错误回调
+* kit 类关键接口介绍：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_interface.png" width = "636" height = "426" alt="图片名称" align=center />
+
+## 4、功能特点
 基于KSYStreamer4.x，详细参考：[KSYStramer说明](https://github.com/ksvc/KSYStreamer_Android/wiki)
 此外，存在以下不同点
 * 不支持[KSYStreamer](https://github.com/ksvc/KSYStreamer_Android)的软编兼容模式

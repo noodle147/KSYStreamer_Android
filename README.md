@@ -26,8 +26,8 @@
 
 ## 功能
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)将提供以下功能。同时也欢迎大家提新的功能需求。
-* 游戏录屏直播
-* 应用内录屏
+* [游戏录屏直播](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYScreenStreamer)
+* [应用内录屏](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYScreenStreamer)
 * 短视频录制
 * 动态贴纸
 * 无人机直播
@@ -45,7 +45,7 @@
 ## 大事记
 
 1. 2016.10.10，[连麦稳定版本](https://github.com/ksvc/KSYRTCLive_Android)开放测试
-
+2. 2016.11.4，[录屏稳定版本](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYScreenStreamer)开放测试
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
