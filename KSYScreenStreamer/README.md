@@ -49,7 +49,7 @@ KSYScreenStreamer是libscreenstreamer基于金山云推流SDK提供的kit类，�
 具体可以参考demo工程中README及相应文件。
 
 ## 5. 更多
-* [悬浮摄像头窗口使用说明](https://github.com/ksvc/KSYScreenStreamer_Android/wiki/Screen_Streamer_CameraFlowView)
+* [悬浮摄像头窗口使用说明](https://github.com/ksvc/KSYDiversityLive_Android/wiki/Screen_Streamer_CameraFlowView)
 
 ## 6. 效果展示
 * 竖屏（含Camera悬浮窗口）：
