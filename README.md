@@ -1,7 +1,8 @@
-# 金山云SDK开发平台
+# 金山云SDK开发平台(Android)
 ## 目标
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)基于组件化思路，通过和多种数据处理服务商的联动，共同构建和繁荣移动直播生态链。
-金山云SDK通过开发接入，实现以下几个方面的多样化：  
+
+金山云SDK通过共享全链路处理能力，开放数据接入处理，实现以下几个方面的多样化：  
 
 1. 功能模式的多样化；
 1. 应用场景的多样化；
@@ -26,8 +27,8 @@
 
 ## 功能
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)将提供以下功能。同时也欢迎大家提新的功能需求。
-* [游戏录屏直播]( KSYScreenStreamer)
-* [应用内录屏]( KSYScreenStreamer)
+* [游戏录屏直播](KSYScreenStreamer)
+* [应用内录屏](KSYScreenStreamer)
 * 短视频录制
 * 动态贴纸
 * 无人机直播
