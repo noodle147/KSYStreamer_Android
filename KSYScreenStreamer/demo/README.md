@@ -4,7 +4,7 @@
 #### 1.1 工程引入
 以Android Studio为例：
 1. copy工程libscreenstreamer到目标工程目录下面
-2. 在目标apk所在的工程中引入libscreenstreamer，引入方式参考：  
+2. 在目标apk所在的工程中引入libscreenstreamer，引入方式参考：
 ```java
 dependencies {
     ...
