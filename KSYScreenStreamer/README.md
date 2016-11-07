@@ -7,11 +7,11 @@
 * `录屏直播_Android`直接open录屏相关及组件化方式的源码，开发者可以直接以lib库的形式在目标工程中引入。
 
 ## 1. 录屏组件化集成介绍
-KSYStreamer_组件化集成结构图：
-<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/ksystreamer_connect.png" width = "1105" height = "718" alt="图片名称" align=center />
+KSYStreamer 是金山云推流SDK提供的kit类，集成了摄像头推流所需的积木类，其组件化集成结构图如下：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/ksystreamer_connect.png" width = "1105" height = "710" alt="图片名称" align=center />
 
-KSYScreenStreamer_组件化集成结构图：
-<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_connect.png" width = "1105" height = "718" alt="图片名称" align=center />
+KSYScreenStreamer是libscreenstreamer基于金山云推流SDK提供的kit类，集成了录屏推流所需的积木类，其组件化集成结构图如下：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_connect.png" width = "1105" height = "710" alt="图片名称" align=center />
 
 ## 2. KSYScreenStreamer_Android 工程介绍
 * libscreenstreamer：录屏libs库，依赖KSYStreamer提供录屏功能类及kit类
@@ -22,9 +22,9 @@ KSYScreenStreamer_组件化集成结构图：
 <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_package.png" width = "799.3" height = "614" alt="图片名称" align=center />
 
 ## 3. 关键接口介绍
-* ScreenCaptureAssistantActivity:接收录屏权限申请回调，触发录屏开始，需要在AndroidMainFest中声明该类
+* ScreenCaptureAssistantActivity:接收录屏权限申请回调，触发录屏开始，需要在AndroidManifest中声明该类
 * KSYScreenStreamer.OnInfoListener:推流状态回调，无KSY_STREAMER_CAMERA_INIT_DONE回调，无Camera相关回调
-* KSYScreenStreamer.OnErrorListener:推流错误回调，增加KSY_STREAMER_SCREEN_RECORD_XXX险关错误回调
+* KSYScreenStreamer.OnErrorListener:推流错误回调，增加KSY_STREAMER_SCREEN_RECORD_XXX相关错误回调
 * KSYCameraPreview.OnInfoListener:悬浮窗口打开时，摄像头状态回调
 * KSYCameraPreview.OnErrorListener:悬浮窗口打开时，摄像头错误回调
 * kit 类关键接口介绍：
@@ -33,13 +33,12 @@ KSYScreenStreamer_组件化集成结构图：
 ## 4、功能特点
 基于KSYStreamer4.x，详细参考：[KSYStramer说明](https://github.com/ksvc/KSYStreamer_Android/wiki)
 此外，存在以下不同点
-* 不支持[KSYStreamer](https://github.com/ksvc/KSYStreamer_Android)的软编兼容模式
-* 不支持设置预览分辨率
+* kit类中未集成[KSYStreamer](https://github.com/ksvc/KSYStreamer_Android)的软编兼容模式
 * ✓支持添加摄像头窗口，对摄像头的支持同KSYStreamer4.x，但是存在以下差异：
     * ✓支持摄像头窗口根据顶层App横竖屏动态切换摄像头的横竖屏
-    * ×不支持触摸对焦、变焦、闪光灯、测光等功能
-* ×不支持背景音乐功能
-* ×不支持纯音频推流
+    * ×kit类中未集成触摸对焦、变焦、闪光灯、测光等功能
+* ×kit类中未集成背景音乐功能
+* ×kit类中未集成纯音频推流
 
 ## 3. 运行环境
 * 最低支持版本为Android 5.0 (API level 21)
