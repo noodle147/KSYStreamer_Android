@@ -40,18 +40,20 @@ KSYScreenStreamer是libscreenstreamer基于金山云推流SDK提供的kit类，�
 * ×kit类中未集成背景音乐功能
 * ×kit类中未集成纯音频推流
 
-## 3. 运行环境
+## 5. 运行环境
 * 最低支持版本为Android 5.0 (API level 21)
 * 支持的cpu架构：armv7, arm64, x86
 
-## 4. 快速集成
+## 6. 快速集成
 快速集成方式基本同[KSYStreamer](https://github.com/ksvc/KSYStreamer_Android/wiki)的集成方式。
 具体可以参考demo工程中README及相应文件。
 
-## 5. 更多
+## 7. 更多
 * [悬浮摄像头窗口使用说明](https://github.com/ksvc/KSYDiversityLive_Android/wiki/Screen_Streamer_CameraFlowView)
 
-## 6. 效果展示
+## 8. 效果展示
+录屏效果请见视频分享：[金山视频云Androi录屏直播开源方案效果](http://share.acg.tv/flash.swf?aid=7038614&page=1)
+
 * 竖屏（含Camera悬浮窗口）：
 <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/Screen_game_p.png" width = "180" height = "320" alt="图片名称" align=center />
 * 横屏（含Camera悬浮窗口）：
