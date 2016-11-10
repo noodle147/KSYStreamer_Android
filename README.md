@@ -46,7 +46,10 @@
 ## 大事记
 
 1. 2016.10.10，[连麦稳定版本](https://github.com/ksvc/KSYRTCLive_Android)开放测试
-2. 2016.11.4，[录屏稳定版本](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYScreenStreamer)开放测试
+1. 2016.11.4，[录屏稳定版本](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYScreenStreamer)开放测试
+
+## 效果展示
+1. 金山视频云Android开源录屏效果：[录屏效果](http://www.bilibili.com/video/av7038614)
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
