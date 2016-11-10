@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="ksylive4.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../libeyemorestreamer/libs/ksylive4.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <LIBRARY_FILE />
+    <SOURCES />
+  </library>
+</component>
