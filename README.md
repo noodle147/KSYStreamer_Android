@@ -29,6 +29,7 @@
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)将提供以下功能。同时也欢迎大家提新的功能需求。
 * [游戏录屏直播](KSYScreenStreamer)
 * [应用内录屏](KSYScreenStreamer)
+* [第三方相机(Eyemore)录屏](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYEyemoreStreamerAndroidSDK)
 * 短视频录制
 * 动态贴纸
 * 无人机直播
