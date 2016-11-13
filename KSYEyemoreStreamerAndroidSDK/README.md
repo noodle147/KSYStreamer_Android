@@ -5,11 +5,12 @@
 * `Eyemore_Android`直接open录屏相关及组件化方式的源码，开发者可以直接以lib库的形式在目标工程中引入。
 
 ## 1. eyemore是什么？在直播中的优势？
-* eyemore是一款高清摄像头，体积小重量轻方便携带，1600万像素，较强的变焦和对焦功能使拍画面具有质感、立体、细节等特点，同时在光线不好的时候，仍然可以还原画面的细节和层次，拍出高质量的画面。给普通用户带来全新的拍摄体验。
+* eyemore是一款高清摄像头，体积小重量轻方便携带，1600万像素，较强的变焦和对焦功能使拍画面具有质感、立体、细节等特点，同时在光线不好的时候，仍然可以还原画
+面的细节和层次，拍出高质量的画面。给普通用户带来全新的拍摄体验。
 * eyemore的特点赋予了其在直播中将有很大应用空间。如在户外做直播时，通过调试焦点可以将清晰的远景通过直播分享，带来不一样的视觉体验。在直播销售中可以使用eyemore对物品进行细节特写，拍摄的画面清晰度更高，为顾客带来更好直观感受。所以在直播中使用eyemore优势明显。
 
 ## 2、使用eyemore工作流程
-* eyemore摄像头开启，将手机和usb数据线连接，运行demo，获取usb权限，接收usb传输过来的数据，将数据送到sdk中进行预览处理，当点击开始推流时候，sdk进行编码、推流。
+* eyemore摄像头开启，将手机和usb数据线连接，运行demo，获取usb权限，接收usb传输过来的数据，将数据送到sdk中进行预览处理，当点击开始播放时候，sdk进行编码、>推流。
 
 ## 3、功能特点
 基于KSYStreamer4.x，详细参考：[KSYStramer说明](https://github.com/ksvc/KSYStreamer_Android/wiki)
@@ -26,5 +27,7 @@
 具体可以参考demo工程中README及相应文件。
 
 ## 7. 效果展示
-* 推流（eyemore作为视频数据输入源）：
-* 播放：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_over_look.png" width = "280" height = "210" alt="图片名称" align=center /> <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_front_look.png" width = "280" height = "210" alt="图
+片名称" align=center /> <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_side_look.png" width = "280" height = "210" alt="图片名称" align=center />
+* 推流端截屏：
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_screen_streamer.png" width = "180" height = "320" alt="图片名称" align=center />  播放端截屏: <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_screen_play.png" width = "180" height = "320" alt="图片名称" align=center />
