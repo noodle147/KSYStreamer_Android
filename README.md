@@ -1,4 +1,4 @@
-# 金山云SDK开发平台(Android)
+# 金山云SDK开放平台(Android)
 ## 目标
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)基于组件化思路，通过和多种数据处理服务商的联动，共同构建和繁荣移动直播生态链。
 
@@ -29,8 +29,9 @@
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)将提供以下功能。同时也欢迎大家提新的功能需求。
 * [游戏录屏直播](KSYScreenStreamer)
 * [应用内录屏](KSYScreenStreamer)
-* [第三方相机(Eyemore)直播](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
+* 第三方相机接入
 * 短视频录制
+* 边录制边推流
 * 动态贴纸
 * 无人机直播
 * 多种美颜
@@ -47,10 +48,8 @@
 ## 大事记
 
 1. 2016.10.10，[连麦稳定版本](https://github.com/ksvc/KSYRTCLive_Android)开放测试
-1. 2016.11.4，[录屏稳定版本](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYScreenStreamer)开放测试
-
-## 效果展示
-1. 金山视频云Android开源录屏效果：[录屏效果](http://www.bilibili.com/video/av7038614)
+1. 2016.11.04，[录屏稳定版本](KSYScreenStreamer)上线
+1. 2016.11.11，[专业相机推流](eyemore)提供接入
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
