@@ -9,6 +9,9 @@
 面的细节和层次，拍出高质量的画面。给普通用户带来全新的拍摄体验。
 * eyemore的特点赋予了其在直播中将有很大应用空间。如在户外做直播时，通过调试焦点可以将清晰的远景通过直播分享，带来不一样的视觉体验。在直播销售中可以使用eyemore对物品进行细节特写，拍摄的画面清晰度更高，为顾客带来更好直观感受。所以在直播中使用eyemore优势明显。
 
+视频效果请见：  
+[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/android-eyemore.jpg)](http://www.bilibili.com/video/av7096879/)
+
 ## 2、使用eyemore工作流程
 * eyemore摄像头开启，将手机和usb数据线连接，运行demo，获取usb权限，接收usb传输过来的数据，将数据送到sdk中进行预览处理，当点击开始播放时候，sdk进行编码、>推流。
 
@@ -27,7 +30,11 @@
 具体可以参考demo工程中README及相应文件。
 
 ## 7. 效果展示
-<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_over_look.png" width = "280" height = "210" alt="图片名称" align=center /> <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_front_look.png" width = "280" height = "210" alt="图
-片名称" align=center /> <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_side_look.png" width = "280" height = "210" alt="图片名称" align=center />
-* 推流端截屏：
-<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_screen_streamer.png" width = "180" height = "320" alt="图片名称" align=center />  播放端截屏: <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_screen_play.png" width = "180" height = "320" alt="图片名称" align=center />
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_over_look.png" width = "280" height = "210" alt="over" align=center /> 
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_front_look.png" width = "280" height = "210" alt="front" align=center />
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_side_look.png" width = "280" height = "210" alt="side" align=center />
+
+|推流端截屏|播放端截屏|
+| :---:|:---: |
+|<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_screen_streamer.png" width = "360" height = "640" alt="streamer" align=center /> |<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/eyemore_screen_play.png" width = "360" height = "640" alt="player" align=center />
+|
