@@ -6,6 +6,14 @@
 
 * `录屏直播_Android`直接open录屏相关及组件化方式的源码，开发者可以直接以lib库的形式在目标工程中引入。
 
+
+录屏视频效果请见：  
+[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/screen-bilibili.png)](http://www.bilibili.com/video/av7038614/)
+
+横竖屏切换时录屏视频效果请见：  
+[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/screen-auto-bilibili.png)](http://www.bilibili.com/video/av7040682/)
+
+
 ## 1. 录屏组件化集成介绍
 KSYStreamer 是金山云推流SDK提供的kit类，集成了摄像头推流所需的积木类，其组件化集成结构图如下：
 <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/ksystreamer_connect.png" width = "1105" height = "710" alt="图片名称" align=center />
