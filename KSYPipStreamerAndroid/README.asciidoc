@@ -6,4 +6,5 @@
 其中，最底层的背景图片以crop_fit的方式占满屏幕，第二层的视频则进行保持比例的缩放，最上层摄像头内容可以动态调整位置及大小。
 
 效果如下图所示：
+
 image::https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/pip-screencapture.png[]
