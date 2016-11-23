@@ -2,9 +2,34 @@
 
 基于KSYStreamerSDK实现画中画相关的功能，需要KSYStreamerSDK v4.0.3及以上版本。
 
-该功能允许用户以背景图片作为最底层背景，视频作为第二层背景，可设置位置、大小的摄像头内容作为最上层来预览、推流。 +
+该功能允许用户以背景图片作为最底层背景，视频作为第二层背景，可设置位置、大小的摄像头内容作为最上层来预览、推流。
+
 其中，最底层的背景图片以crop_fit的方式占满屏幕，第二层的视频则进行保持比例的缩放，最上层摄像头内容可以动态调整位置及大小。
+
+支持的播放格式可参看: https://github.com/ksvc/KSYMediaPlayer_Android
 
 效果如下图所示：
 
 image::https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/pip-screencapture.png[]
+
+== 运行环境
+
+* 硬编模式下最低支持版本为Android 4.3，软编模式下为Android 4.4
+* 支持的cpu架构：armv7, arm64, x86
+
+== 工程代码结构
+
+当前工程依赖于KSYStreamerSDK，需要自行下载 https://github.com/ksvc/KSYStreamer_Android[KSYStreamerSDK] v4.0.3以上版本的libs目录，放在当前工程的app/目录下。
+
+画中画的包名为com.ksyun.media.diversity.pipstreamer, 包含以下内容：
+
+* capture: 将图片、视频内容转换为Texture内容，传递给SDK进行处理
+** capture/MediaPlayerCapture.java: 视频内容采集模块
+** capture/PictureCapture: 图片内容采集模块
+* kit: 画中画相关功能的封装
+** kit/KSYPipStreamer: 添加了画中画功能的KSYStreamer类
+* demo: 画中画kit类KSYPipStreamer的使用例程
+
+== 画中画相关功能使用说明
+
+TBD.
