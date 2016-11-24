@@ -32,4 +32,77 @@ image::https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/imag
 
 == 画中画相关功能使用说明
 
-TBD.
+具体可参考工程中的 `com.ksyun.media.diversity.pipstreamer.demo.PipActivity` 类.
+
+. 开始画中画
++
+[source, java]
+----
+// 配置视频播放器
+mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
+mStreamer.getMediaPlayerCapture().getMediaPlayer()
+        .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
+    @Override
+    public void onCompletion(IMediaPlayer iMediaPlayer) {
+        Log.d(TAG, "End of the currently playing video");
+        mStreamer.showBgVideo(mPipPath);
+    }
+});
+mStreamer.getMediaPlayerCapture().getMediaPlayer()
+        .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
+                Log.e(TAG, "MediaPlayer error, what=" + what + " extra=" + extra);
+                return false;
+            }
+        });
+// 显示图片背景层
+mStreamer.showBgPicture(this, mBgPicPath);
+// 显示视频背景层
+mStreamer.showBgVideo(mPipPath);
+// 配置摄像头内容悬浮窗的位置及大小
+mStreamer.setCameraPreviewRect(0.65f, 0.f, 0.35f, 0.3f);
+
+// 因为摄像头内容不再是全屏，这里禁用触摸对焦
+mCameraTouchHelper.setEnableTouchFocus(false);
+----
++
+. 停止画中画
++
+[source, java]
+----
+// 隐藏背景图片
+mStreamer.hideBgPicture();
+// 隐藏视频背景
+mStreamer.hideBgVideo();
+// 恢复摄像头预览区域
+mStreamer.setCameraPreviewRect(0.f, 0.f, 1.f, 1.f);
+
+// 重新使能触摸对焦
+mCameraTouchHelper.setEnableTouchFocus(true);
+----
++
+. 前后台切换相关处理
++
+[source, java]
+----
+@Override
+public void onPause() {
+    // ...
+    if (mPipMode) {
+        mStreamer.getMediaPlayerCapture().getMediaPlayer().pause();
+        mStreamer.getPictureCapture().stop();
+    }
+    // ...
+}
+
+@Override
+public void onResume() {
+    // ...
+    if (mPipMode) {
+        mStreamer.getMediaPlayerCapture().getMediaPlayer().start();
+        mStreamer.getPictureCapture().start(this, mBgPicPath);
+    }
+    // ...
+}
+----
