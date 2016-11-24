@@ -35,7 +35,7 @@
 * 动态贴纸
 * 无人机直播
 * 多种美颜
-* 画中画
+* [画中画](KSYPipStreamerAndroid)
 * 连麦
 
 ## 开放合作
@@ -50,6 +50,7 @@
 1. 2016.10.10，[连麦稳定版本](https://github.com/ksvc/KSYRTCLive_Android)开放测试
 1. 2016.11.04，[录屏稳定版本](KSYScreenStreamer)上线
 1. 2016.11.11，[专业相机推流](eyemore)提供接入
+1. 2016.11.24，[画中画](KSYPipStreamerAndroid)上线
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
