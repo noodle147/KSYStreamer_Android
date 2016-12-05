@@ -31,10 +31,10 @@
 * [应用内录屏](KSYScreenStreamer)
 * 第三方相机接入
 * 短视频录制
-* 边录制边推流
-* 动态贴纸
+* 边录制边推流(Coming soon)
+* 动态贴纸(Comming soon)
 * 无人机直播
-* 多种美颜
+* 多种美颜(Coming soon)
 * [画中画](KSYPipStreamerAndroid)
 * 连麦
 
