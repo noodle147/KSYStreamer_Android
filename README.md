@@ -29,14 +29,14 @@
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)将提供以下功能。同时也欢迎大家提新的功能需求。
 * [游戏录屏直播](KSYScreenStreamer)
 * [应用内录屏](KSYScreenStreamer)
-* 第三方相机接入
-* 短视频录制
+* [第三方相机接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
+* 短视频录制(Coming soon)
 * 边录制边推流(Coming soon)
 * 动态贴纸(Comming soon)
-* 无人机直播
 * 多种美颜(Coming soon)
 * [画中画](KSYPipStreamerAndroid)
-* 连麦
+* [连麦](https://github.com/ksvc/KSYRTCLive_Android)
+* 无人机直播
 
 ## 开放合作
 任何企业、个人都可以参与，提供的SDK付费、免费都可以。不限于以下的合作场景：
