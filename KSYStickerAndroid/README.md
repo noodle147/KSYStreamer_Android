@@ -7,4 +7,4 @@
 
 商汤科技动态贴纸预览、直播效果视频请点击以下链接：
 
-[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/st/st.jpg)](http://www.bilibili.com/video/av7432197
+[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/st/st.jpg)](http://www.bilibili.com/video/av7432197)
