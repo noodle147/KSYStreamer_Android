@@ -30,8 +30,8 @@
 * [游戏录屏直播](KSYScreenStreamer)
 * [应用内录屏](KSYScreenStreamer)
 * [第三方相机接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
-* 短视频录制(Coming soon)
-* 边录制边推流(Coming soon)
+* 短视频录制
+* 边录制边推流
 * [动态贴纸](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
 * 多种美颜(Coming soon)
 * [画中画](KSYPipStreamerAndroid)
