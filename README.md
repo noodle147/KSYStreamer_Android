@@ -35,7 +35,8 @@
 * [动态贴纸](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
 * 多种美颜(Coming soon)
 * [画中画](KSYPipStreamerAndroid)
-* [连麦](https://github.com/ksvc/KSYRTCLive_Android)
+* [金山云连麦](https://github.com/ksvc/KSYRTCLive_Android)
+* [声网连麦](Agora)
 * 无人机直播
 
 ## 开放合作
