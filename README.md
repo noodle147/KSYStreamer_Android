@@ -53,7 +53,7 @@
 1. 2016.11.11，[专业相机推流](eyemore)提供接入
 1. 2016.11.24，[画中画](KSYPipStreamerAndroid)上线
 1. 2016.12.6, [动态贴纸](KSYStickerAndroid)上线  
-1. 2016.12.28, [声网连麦](Agora)上线
+1. 2016.12.28, [声网连麦](Agora)上线  
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
 - 邮箱：<zengfanping@kingsoft.com>
