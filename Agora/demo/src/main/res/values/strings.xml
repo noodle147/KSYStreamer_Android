@@ -24,5 +24,6 @@
     <string name="front_mirror">前置镜像</string>
     <string name="audio_only">音频推流</string>
 
-    <string name="app_id">e58027d14ffa40c18deaab1754e2fc37</string>
+    <!-- Get your own app id at https://dashboard.agora.io/ -->
+    <string name="app_id"><#YOUR APP ID#></string>
 </resources>
