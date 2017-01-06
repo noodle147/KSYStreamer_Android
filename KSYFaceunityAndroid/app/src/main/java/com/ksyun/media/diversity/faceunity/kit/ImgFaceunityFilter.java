@@ -202,7 +202,7 @@ public class ImgFaceunityFilter {
                      * @param v3data
                      * @param null, old parameter, consider removed in the future
                      * @param authpack.A(), auth key byte array content
-                     * 需要联系Faceunity获取authpack
+                     * 需要联系Faceunity获取鉴权，demo中的只是临时的
                      **/
                     faceunity.fuSetup(v3data, null, authpack.A());
                     mInited = true;
