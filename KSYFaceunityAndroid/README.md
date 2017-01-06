@@ -8,7 +8,7 @@
 
 Faceunity虚拟道具预览、直播效果视频请点击以下链接：
 
-[![ScreenShot]()
+[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/faceunity.png)](http://www.bilibili.com/video/av7879423/)
 
 ### 1.1 Faceunity鉴权
 Demo中鉴权只是临时鉴权，需要用户联系Faceunity获取正式鉴权
