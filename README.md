@@ -32,7 +32,8 @@
 * [第三方相机接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
 * 短视频录制
 * 边录制边推流
-* [动态贴纸](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
+* [商汤动态贴纸](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
+* [Faceunity动态贴纸](KSYFaceunityAndroid)
 * 多种美颜(Coming soon)
 * [画中画](KSYPipStreamerAndroid)
 * [金山云连麦](https://github.com/ksvc/KSYRTCLive_Android)
@@ -52,8 +53,9 @@
 1. 2016.11.04，[录屏稳定版本](KSYScreenStreamer)上线
 1. 2016.11.11，[专业相机推流](eyemore)提供接入
 1. 2016.11.24，[画中画](KSYPipStreamerAndroid)上线
-1. 2016.12.6, [动态贴纸](KSYStickerAndroid)上线  
+1. 2016.12.6, [商汤动态贴纸](KSYStickerAndroid)上线  
 1. 2016.12.28, [声网连麦](Agora)上线  
+1. 2017.1.6, [Faceunity动态贴纸](KSYFaceunityAndroid)上线  
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
