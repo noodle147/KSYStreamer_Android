@@ -137,14 +137,13 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
             Log.d(TAG, "start");
         }
 
-        if (Build.VERSION.SDK_INT < 21) {
-            Message msg = mMainHandler.obtainMessage(SCREEN_RECORD_FAILED, SCREEN_ERROR_SYSTEM_UNSUPPORTED, 0);
-            mMainHandler.sendMessage(msg);
+        if (mState.get() != SCREEN_STATE_IDLE) {
             return false;
         }
 
-        if (mState.get() != SCREEN_STATE_IDLE) {
-            Log.e(TAG, "Call start on invalid state");
+        if (Build.VERSION.SDK_INT < 21) {
+            Message msg = mMainHandler.obtainMessage(SCREEN_RECORD_FAILED, SCREEN_ERROR_SYSTEM_UNSUPPORTED, 0);
+            mMainHandler.sendMessage(msg);
             return false;
         }
 
@@ -182,7 +181,6 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
         mState.set(SCREEN_STATE_STOPPING);
         mScreenSetupHandler.removeMessages(MSG_SCREEN_RELEASE);
         mScreenSetupHandler.sendMessage(msg);
-
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -327,6 +325,11 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
                     mLastTraceTime = tm;
                 }
             }
+        }
+
+        @Override
+        public void onReleased() {
+
         }
     };
 

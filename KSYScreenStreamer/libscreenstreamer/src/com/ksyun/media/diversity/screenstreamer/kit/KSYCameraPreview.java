@@ -8,6 +8,7 @@ import com.ksyun.media.streamer.kit.StreamerConstants;
 import com.ksyun.media.streamer.util.gles.GLRender;
 
 import android.content.Context;
+import android.opengl.EGLContext;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 import android.view.TextureView;
@@ -20,6 +21,7 @@ public class KSYCameraPreview{
 
     private Context mContext;
 
+    private EGLContext mEGLContext;
     private GLRender mCameraGLRender;
     private CameraCapture mCameraPreview;
 
@@ -43,24 +45,13 @@ public class KSYCameraPreview{
     private KSYCameraPreview.OnInfoListener mOnInfoListener;
     private KSYCameraPreview.OnErrorListener mOnErrorListener;
 
-    public KSYCameraPreview(Context context) {
+    public KSYCameraPreview(Context context, EGLContext eglContext) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null!");
         }
         mContext = context.getApplicationContext();
+        mEGLContext = eglContext;
         initModules();
-    }
-
-
-    /**
-     * Set GLSurfaceView as camera previewer.<br/>
-     * Must set once before the GLSurfaceView created.
-     *
-     * @param surfaceView GLSurfaceView to be set.
-     */
-    public void setDisplayPreview(GLSurfaceView surfaceView) {
-        mCameraGLRender.init(surfaceView);
-        mCameraGLRender.addListener(mGLRenderListener);
     }
 
     /**
@@ -75,16 +66,25 @@ public class KSYCameraPreview{
     }
 
     /**
-     * Set rotate degrees in anti-clockwise of current Camera.
+     * Set rotate degrees in anti-clockwise of current Activity.
      *
      * @param degrees Degrees in anti-clockwise, only 0, 90, 180, 270 accepted.
+     * @throws IllegalArgumentException
      */
-    public void setRotateDegrees(int degrees) {
+    public void setRotateDegrees(int degrees) throws IllegalArgumentException {
         degrees %= 360;
         if (degrees % 90 != 0) {
             throw new IllegalArgumentException("Invalid rotate degrees");
         }
         mRotateDegrees = degrees;
+    }
+
+    /**
+     * get rotate degrees
+     * @return degrees Degrees in anti-clockwise, only 0, 90, 180, 270 accepted.
+     */
+    public int getRotateDegrees() {
+        return mRotateDegrees;
     }
 
     /**
@@ -99,8 +99,12 @@ public class KSYCameraPreview{
      *
      * @param width  preview width.
      * @param height preview height.
+     * @throws IllegalArgumentException
      */
-    public void setPreviewResolution(int width, int height) {
+    public void setPreviewResolution(int width, int height) throws IllegalArgumentException {
+        if (width < 0 || height < 0 || (width == 0 && height == 0)) {
+            throw new IllegalArgumentException("Invalid resolution");
+        }
         mPreviewWidth = width;
         mPreviewHeight = height;
     }
@@ -112,18 +116,36 @@ public class KSYCameraPreview{
      * {@link #startCameraPreview(int)} call.
      *
      * @param idx Resolution index.<br/>
-     * @throws IllegalArgumentException
      * @see StreamerConstants#VIDEO_RESOLUTION_360P
      * @see StreamerConstants#VIDEO_RESOLUTION_480P
      * @see StreamerConstants#VIDEO_RESOLUTION_540P
      * @see StreamerConstants#VIDEO_RESOLUTION_720P
+     * @throws IllegalArgumentException
      */
-    public void setPreviewResolution(int idx) {
+    public void setPreviewResolution(int idx) throws IllegalArgumentException {
         if (idx < StreamerConstants.VIDEO_RESOLUTION_360P ||
                 idx > StreamerConstants.VIDEO_RESOLUTION_720P) {
             throw new IllegalArgumentException("Invalid resolution index");
         }
         mPreviewResolution = idx;
+        mPreviewWidth = 0;
+        mPreviewHeight = 0;
+    }
+
+    /**
+     * get preview width
+     * @return preview width
+     */
+    public int getPreviewWidth() {
+        return mPreviewWidth;
+    }
+
+    /**
+     * get preview height
+     * @return preview height
+     */
+    public int getPreviewHeight() {
+        return mPreviewHeight;
     }
 
     /**
@@ -137,11 +159,19 @@ public class KSYCameraPreview{
      * @param fps frame rate to be set.
      * @throws IllegalArgumentException
      */
-    public void setPreviewFps(float fps) {
+    public void setPreviewFps(float fps) throws IllegalArgumentException {
         if (fps <= 0) {
             throw new IllegalArgumentException("the fps must > 0");
         }
         mPreviewFps = fps;
+    }
+
+    /**
+     * get preview frame rate
+     * @return preview frame rate
+     */
+    public float getPreviewFps() {
+        return mPreviewFps;
     }
 
     /**
@@ -163,15 +193,6 @@ public class KSYCameraPreview{
     }
 
     /**
-     * Get {@link CameraCapture} module instance.
-     *
-     * @return CameraCapture instance.
-     */
-    public CameraCapture getCameraCapture() {
-        return mCameraPreview;
-    }
-
-    /**
      * Set initial camera facing.<br/>
      * Set before {@link #startCameraPreview()}, give a chance to set initial camera facing,
      * equals {@link #startCameraPreview(int)}.<br/>
@@ -185,28 +206,20 @@ public class KSYCameraPreview{
     }
 
     /**
-     * Switch camera facing between front and back.
+     * get camera facing.
+     * @return camera facing
      */
-    public void switchCamera() {
-        mCameraPreview.switchCamera();
+    public int getCameraFacing() {
+        return mCameraFacing;
     }
 
     /**
-     * Set info listener.
+     * Get {@link CameraCapture} module instance.
      *
-     * @param listener info listener
+     * @return CameraCapture instance.
      */
-    public void setOnInfoListener(KSYCameraPreview.OnInfoListener listener) {
-        mOnInfoListener = listener;
-    }
-
-    /**
-     * Set error listener.
-     *
-     * @param listener error listener
-     */
-    public void setOnErrorListener(KSYCameraPreview.OnErrorListener listener) {
-        mOnErrorListener = listener;
+    public CameraCapture getCameraCapture() {
+        return mCameraPreview;
     }
 
     /**
@@ -245,24 +258,51 @@ public class KSYCameraPreview{
         mScreenRenderHeight = 0;
         mPreviewWidth = 0;
         mPreviewHeight = 0;
-
     }
+
+    /**
+     * Switch camera facing between front and back.
+     */
+    public void switchCamera() {
+        mCameraPreview.switchCamera();
+    }
+
+    /**
+     * Set info listener.
+     *
+     * @param listener info listener
+     */
+    public void setOnInfoListener(KSYCameraPreview.OnInfoListener listener) {
+        mOnInfoListener = listener;
+    }
+
+    /**
+     * Set error listener.
+     *
+     * @param listener error listener
+     */
+    public void setOnErrorListener(KSYCameraPreview.OnErrorListener listener) {
+        mOnErrorListener = listener;
+    }
+
+
 
     /**
      * Should be called on Activity.onResume or Fragment.onResume.
      */
     public void onResume() {
-        //mCameraGLRender.onResume();
+        mCameraGLRender.onResume();
     }
 
     /**
      * Should be called on Activity.onPause or Fragment.onPause.
      */
     public void onPause() {
-        //mCameraGLRender.onPause();
+        mCameraGLRender.onPause();
     }
 
     public void release() {
+        mCameraGLRender.release();
         mCameraPreview.release();
     }
 
@@ -360,26 +400,27 @@ public class KSYCameraPreview{
         @Override
         public void onDrawFrame() {
         }
+
+        @Override
+        public void onReleased() {
+
+        }
     };
 
     private void initModules() {
         // Init GLRender for gpu render
-        mCameraGLRender = new GLRender();
+        mCameraGLRender = new GLRender(mEGLContext);
 
         // Camera preview
         mCameraPreview = new CameraCapture(mContext, mCameraGLRender);
         mImgTexScaleFilter = new ImgTexScaleFilter(mCameraGLRender);
-        mImgTexFilterMgt = new ImgTexFilterMgt();
+        mImgTexFilterMgt = new ImgTexFilterMgt(mContext);
         mImgTexMixer = new ImgTexMixer(mCameraGLRender);
         mImgTexMixer.setIsPreviewer(true);
         mCameraPreview.mImgTexSrcPin.connect(mImgTexScaleFilter.getSinkPin());
         mImgTexScaleFilter.getSrcPin().connect(mImgTexFilterMgt.getSinkPin());
         mImgTexFilterMgt.getSrcPin().connect(mImgTexMixer.getSinkPin(0));
 
-        initListeners();
-    }
-
-    private void initListeners() {
         mCameraPreview.setOnCameraCaptureListener(new CameraCapture.OnCameraCaptureListener() {
             @Override
             public void onStarted() {
@@ -404,6 +445,9 @@ public class KSYCameraPreview{
                         break;
                     case CameraCapture.CAMERA_ERROR_SERVER_DIED:
                         what = StreamerConstants.KSY_STREAMER_CAMERA_ERROR_SERVER_DIED;
+                        break;
+                    case CameraCapture.CAMERA_ERROR_EVICTED:
+                        what = StreamerConstants.KSY_STREAMER_CAMERA_ERROR_EVICTED;
                         break;
                     case CameraCapture.CAMERA_ERROR_UNKNOWN:
                     default:

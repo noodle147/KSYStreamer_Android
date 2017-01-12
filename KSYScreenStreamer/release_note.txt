@@ -1,3 +1,12 @@
 2016-11-04  1.0.0版
 1.添加录屏推流lib库，该库依赖KSYStreamer 4.0.2.2版本
 2.添加录屏推流Demo库
+
+
+2017-01-12  1.0.1版
+1.更新推流lib库，该库依赖KSYStreamer 4.1.1版本
+2.修改录屏推流为离屏推流
+3.在KSYCameraPreview中新增接口setDisplayPreview(TextureView)，删除原有接口setDisplayPreview(SurfaceView)
+(录屏悬浮窗口只能用TextureView)
+4.在Demo中添加在悬浮窗口上动态打开/关闭Camera的示例代码onOpenCamera
+5.解决断网后，自动切换到推流界面的问题

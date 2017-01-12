@@ -1,12 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools"
           package="com.ksyun.media.diversity.screenstreamer.demo"
-          android:installLocation="preferExternal"
-          android:versionCode="1"
-          android:versionName="0.0.1">
-    <uses-sdk
-        android:minSdkVersion="15"
-        android:targetSdkVersion="23" />
+          android:installLocation="preferExternal">
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
