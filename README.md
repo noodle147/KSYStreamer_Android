@@ -34,7 +34,7 @@
 * 边录制边推流
 * [商汤动态贴纸](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
 * [Faceunity动态贴纸](KSYFaceunityAndroid)
-* 多种美颜(Coming soon)
+* 涂图美颜(Coming soon)
 * [画中画](KSYPipStreamerAndroid)
 * [金山云连麦](https://github.com/ksvc/KSYRTCLive_Android)
 * [声网连麦](Agora)
