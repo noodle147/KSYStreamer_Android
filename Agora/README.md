@@ -5,7 +5,7 @@
 ## 一. 功能特点
 
 ### 连麦功能
-* 在 [金山云推流SDK](https://github.com/ksvc/KKSYStreamer_AndroidSYStreamer_Android)增加了连麦功能。
+* 在 [金山云推流SDK](https://github.com/ksvc/KSYStreamer_Android)增加了连麦功能。
 
 ## 二. 运行环境
 
@@ -46,4 +46,4 @@
 - 主页：[金山云](http://www.ksyun.com/)
 - 邮箱：<zengfanping@kingsoft.com>
 - QQ讨论群：574179720
-- Issues: <https://github.com/ksvc/KSYRTCLive_Android/issues>
+- Issues: <https://github.com/ksvc/KSYDiversityLive_Android/issues>
