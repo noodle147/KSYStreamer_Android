@@ -1,0 +1,52 @@
+apply plugin: 'com.android.application'
+
+android {
+    signingConfigs {
+        config {
+            keyAlias 'ksystreamer'
+            keyPassword 'kscloud'
+            storeFile file('../ksystreamer.jks')
+            storePassword 'kscloud'
+        }
+    }
+
+    compileSdkVersion 24
+    buildToolsVersion "24.0.1"
+
+    defaultConfig {
+        applicationId "com.ksyun.media.streamer.demo"
+        minSdkVersion 15
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.config
+            jniDebuggable true
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
+            signingConfig signingConfigs.config
+        }
+    }
+    sourceSets{
+        main{
+            jniLibs.srcDir 'libs'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    // see http://stackoverflow.com/a/31457523/5047087
+    compile 'com.ksyun.media:libksylive-java:2.2.0'
+    compile 'com.ksyun.media:libksylive-arm64:2.2.0'
+    compile 'com.ksyun.media:libksylive-armv7a:2.2.0'
+    compile 'com.ksyun.media:libksylive-x86:2.2.0'
+}
