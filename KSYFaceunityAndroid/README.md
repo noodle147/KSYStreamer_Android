@@ -6,8 +6,19 @@
 
 基于金山云开发平台，可以很方便地将Faceunity人脸跟踪、虚拟道具、美颜功能植入到金山云直播SDK中。
 
-* Faceunity虚拟道具预览、直播效果视频请点击以下链接：
+* Faceunity虚拟道具预览效果：  
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/prop.png" width = "180" height = "320" alt="prop" align=center />
 
+* Faceunity虚拟手势预览效果：  
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/gesture.png" width = "180" height = "320" alt="gesture" align=center />
+
+* Faceunity虚拟瘦脸前后对比预览效果：  
+瘦脸前
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/cheek_beofre.png" width = "180" height = "320" alt="gesture" align=center />
+瘦脸后
+<img src="https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/cheek_after.png" width = "180" height = "320" alt="gesture" align=center /> 
+
+* Faceunity虚拟道具预览、直播效果视频请点击以下链接：
 [![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/faceunity.png)](http://www.bilibili.com/video/av7879423/)
 
 * Faceunity大眼、瘦脸、手势识别效果，请点击视频链接：
