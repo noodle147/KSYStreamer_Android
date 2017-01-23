@@ -6,9 +6,12 @@
 
 基于金山云开发平台，可以很方便地将Faceunity人脸跟踪、虚拟道具、美颜功能植入到金山云直播SDK中。
 
-Faceunity虚拟道具预览、直播效果视频请点击以下链接：
+* Faceunity虚拟道具预览、直播效果视频请点击以下链接：
 
 [![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/faceunity.png)](http://www.bilibili.com/video/av7879423/)
+
+* Faceunity大眼、瘦脸、手势识别效果，请点击视频链接：
+[![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/fu/fudroid-bilibili.jpg)](http://www.bilibili.com/video/av8168249/)
 
 ### 1.1 Faceunity鉴权
 Demo中鉴权只是临时鉴权，需要用户联系Faceunity获取正式鉴权
