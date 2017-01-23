@@ -104,11 +104,16 @@ public class FaceunityActivity extends Activity implements
     private AppCompatSeekBar mRuddySeekBar;
 
     private CheckBox mFaceunityPropCheckBox;
+    private CheckBox mFaceunityGestureCheckBox;
     private AppCompatSpinner mFaceunityBeautySpinner;
     private LinearLayout mFaceunityBeautyGrindLayout;
     private LinearLayout mFaceunityBeautyWhitenLayout;
+    private LinearLayout mFaceunityBeautyCheekLayout;
+    private LinearLayout mFaceunityBeautyEyeLayout;
     private AppCompatSeekBar mFaceunityGrindSeekBar;
     private AppCompatSeekBar mFaceunityWhitenSeekBar;
+    private AppCompatSeekBar mFaceunityCheekSeekBar;
+    private AppCompatSeekBar mFaceunityEyeSeekBar;
 
     private ButtonObserver mObserverButton;
     private CheckBoxObserver mCheckBoxObserver;
@@ -301,6 +306,8 @@ public class FaceunityActivity extends Activity implements
         //} else {
         //    mStreamer.setOffscreenPreview(720, 1280);
         //}
+        //断网等异常case触发自动重连
+        mStreamer.setEnableAutoRestart(true, 3000);
         mStreamer.setFrontCameraMirror(mFrontMirrorCheckBox.isChecked());
         mStreamer.setMuteAudio(mMuteCheckBox.isChecked());
         mStreamer.setEnableAudioPreview(mAudioPreviewCheckBox.isChecked());
@@ -439,6 +446,7 @@ public class FaceunityActivity extends Activity implements
         super.onResume();
         startCameraPreviewWithPermCheck();
         mStreamer.onResume();
+        mStreamer.setUseDummyAudioCapture(false);
         if (mWaterMarkCheckBox.isChecked()) {
             showWaterMark();
         }
@@ -449,6 +457,7 @@ public class FaceunityActivity extends Activity implements
     public void onPause() {
         super.onPause();
         mStreamer.onPause();
+        mStreamer.setUseDummyAudioCapture(true);
         mStreamer.stopCameraPreview();
         hideWaterMark();
     }
@@ -463,6 +472,7 @@ public class FaceunityActivity extends Activity implements
         if (mTimer != null) {
             mTimer.cancel();
         }
+        mStreamer.setOnLogEventListener(null);
         mStreamer.release();
     }
 
@@ -588,6 +598,7 @@ public class FaceunityActivity extends Activity implements
                     break;
                 case StreamerConstants.KSY_STREAMER_OPEN_STREAM_SUCCESS:
                     Log.d(TAG, "KSY_STREAMER_OPEN_STREAM_SUCCESS");
+                    mShootingText.setText(STOP_STRING);
                     mChronometer.setBase(SystemClock.elapsedRealtime());
                     mChronometer.start();
                     beginInfoUploadTimer();
@@ -679,6 +690,10 @@ public class FaceunityActivity extends Activity implements
                 case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_SERVER_DIED:
                     Log.d(TAG, "KSY_STREAMER_CAMERA_ERROR_SERVER_DIED");
                     break;
+                //Camera was disconnected due to use by higher priority user.
+                case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_EVICTED:
+                    Log.d(TAG, "KSY_STREAMER_CAMERA_ERROR_EVICTED");
+                    break;
                 default:
                     Log.d(TAG, "what=" + what + " msg1=" + msg1 + " msg2=" + msg2);
                     break;
@@ -698,10 +713,14 @@ public class FaceunityActivity extends Activity implements
                         }
                     }, 5000);
                     break;
+                case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_CLOSE_FAILED:
+                case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_ERROR_UNKNOWN:
+                case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_OPEN_FAILED:
+                case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_WRITE_FAILED:
+                    break;
                 case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNSUPPORTED:
-                case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNKNOWN:
+                case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNKNOWN: {
                     handleEncodeError();
-                default:
                     stopStream();
                     mMainHandler.postDelayed(new Runnable() {
                         @Override
@@ -709,6 +728,23 @@ public class FaceunityActivity extends Activity implements
                             startStream();
                         }
                     }, 3000);
+                }
+                break;
+                default:
+                    if (mStreamer.getEnableAutoRestart()) {
+                        mShootingText.setText(START_STRING);
+                        mShootingText.postInvalidate();
+                        mRecording = false;
+                        stopChronometer();
+                    } else {
+                        stopStream();
+                        mMainHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                startStream();
+                            }
+                        }, 3000);
+                    }
                     break;
             }
         }
@@ -991,6 +1027,9 @@ public class FaceunityActivity extends Activity implements
                 case R.id.faceunity_prop:
                     onFaceunityPropCheck(isChecked);
                     break;
+                case R.id.faceunity_gesture:
+                    onFaceunityGestureCheck(isChecked);
+                    break;
                 default:
                     break;
             }
@@ -1040,11 +1079,17 @@ public class FaceunityActivity extends Activity implements
     private void initFaceunityUI() {
         mFaceunityPropCheckBox = (CheckBox) findViewById(R.id.faceunity_prop);
         mFaceunityPropCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mFaceunityGestureCheckBox = (CheckBox) findViewById(R.id.faceunity_gesture);
+        mFaceunityGestureCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
         mFaceunityBeautySpinner = (AppCompatSpinner) findViewById(R.id.faceunity_beauty);
         mFaceunityBeautyGrindLayout = (LinearLayout) findViewById(R.id.faceunity_beauty_grind);
         mFaceunityBeautyWhitenLayout = (LinearLayout) findViewById(R.id.faceunity_beauty_whiten);
+        mFaceunityBeautyCheekLayout = (LinearLayout) findViewById(R.id.faceunity_beauty_cheek);
+        mFaceunityBeautyEyeLayout = (LinearLayout) findViewById(R.id.faceunity_beauty_eye);
         mFaceunityGrindSeekBar = (AppCompatSeekBar) findViewById(R.id.faceunity_grind_seek_bar);
         mFaceunityWhitenSeekBar = (AppCompatSeekBar) findViewById(R.id.faceunity_whiten_seek_bar);
+        mFaceunityCheekSeekBar = (AppCompatSeekBar) findViewById(R.id.faceunity_cheek_seek_bar);
+        mFaceunityEyeSeekBar = (AppCompatSeekBar) findViewById(R.id.faceunity_eye_seek_bar);
 
         String[] items = new String[]{"DISABLE", "FACEUNITY_NATURE", "FACEUNITY_DELTA",
                 "FACEUNITY_ELECTRIC", "FACEUNITY_SLOWLIVED", "FACEUNITY_TOKYO", "FACEUNITY_WARM"};
@@ -1064,10 +1109,14 @@ public class FaceunityActivity extends Activity implements
                     mStreamer.getFaceuintyFilter().setBeautyType(-1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.INVISIBLE);
+                    mFaceunityBeautyCheekLayout.setVisibility(View.INVISIBLE);
+                    mFaceunityBeautyEyeLayout.setVisibility(View.INVISIBLE);
                 } else {
                     mStreamer.getFaceuintyFilter().setBeautyType(position - 1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.VISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.VISIBLE);
+                    mFaceunityBeautyCheekLayout.setVisibility(View.VISIBLE);
+                    mFaceunityBeautyEyeLayout.setVisibility(View.VISIBLE);
 
                     SeekBar.OnSeekBarChangeListener seekBarChangeListener =
                             new SeekBar.OnSeekBarChangeListener() {
@@ -1078,12 +1127,19 @@ public class FaceunityActivity extends Activity implements
                                         return;
                                     }
 
-                                    if(seekBar == mFaceunityGrindSeekBar) {
-                                        double val = (double) (progress / (100.0f / 16.0f));
+                                    if (seekBar == mFaceunityGrindSeekBar) {
+                                        int val = Math.round(progress / (100.0f / 5f));
                                         mStreamer.getFaceuintyFilter().setBeautyBlurLevel(val);
-                                    } else if(seekBar == mFaceunityWhitenSeekBar) {
+                                    } else if (seekBar == mFaceunityWhitenSeekBar) {
                                         double val = (double) (progress / 50.f);
                                         mStreamer.getFaceuintyFilter().setBeautyColorLevel(val);
+                                    } else if (seekBar == mFaceunityCheekSeekBar) {
+                                        double val = (double) (progress / 50.f);
+                                        mStreamer.getFaceuintyFilter().setBeautyCheekLevel(val);
+
+                                    } else if (seekBar == mFaceunityEyeSeekBar) {
+                                        double val = (double) (progress / 50.f);
+                                        mStreamer.getFaceuintyFilter().setBeautyEyeLevel(val);
                                     }
                                 }
 
@@ -1098,10 +1154,19 @@ public class FaceunityActivity extends Activity implements
                     int grid = (int) (mStreamer.getFaceuintyFilter().getBeautyBlurLvevl() * 100f *
                             16f);
                     int whiten = (int) (mStreamer.getFaceuintyFilter().getBeautyColorLevel() * 50f);
+
+                    int cheek = (int) (mStreamer.getFaceuintyFilter().getBeautyCheekLevel() * 100f *
+                            16f);
+                    int eye = (int) (mStreamer.getFaceuintyFilter().getBeautyEyeLevel() * 50f);
+
                     mFaceunityGrindSeekBar.setProgress(grid);
                     mFaceunityWhitenSeekBar.setProgress(whiten);
+                    mFaceunityCheekSeekBar.setProgress(cheek);
+                    mFaceunityEyeSeekBar.setProgress(eye);
                     mFaceunityGrindSeekBar.setOnSeekBarChangeListener(seekBarChangeListener);
                     mFaceunityWhitenSeekBar.setOnSeekBarChangeListener(seekBarChangeListener);
+                    mFaceunityCheekSeekBar.setOnSeekBarChangeListener(seekBarChangeListener);
+                    mFaceunityEyeSeekBar.setOnSeekBarChangeListener(seekBarChangeListener);
                 }
             }
 
@@ -1124,18 +1189,46 @@ public class FaceunityActivity extends Activity implements
         }
     }
 
+    private void onFaceunityGestureCheck(boolean isCheck) {
+        if (isCheck) {
+            mStreamer.showFaceunityGesture();
+            showFaceunityGestureChoose();
+        } else {
+            mStreamer.hideFaceunityGesture();
+            mStreamer.getFaceuintyFilter().setGestureType(-1);
+        }
+    }
+
     private void showFaceunityPropChoose() {
         AlertDialog alertDialog;
         alertDialog = new AlertDialog.Builder(this)
                 .setTitle("请选择贴纸")
                 .setSingleChoiceItems(
                         new String[]{"BEAGLEDOG", "COLORCROWN", "DEER",
-                                "HAPPYRABBI", "HARTSHORN", "ITEM0204", "ITEM0208", "ITEM0210",
-                                "ITEM0501", "MOOD", "PRINCESSCROWN", "TIARA"}, -1,
+                                "HAPPYRABBI", "HARTSHORN", "ITEM0204", "ITEM0208",
+                                "ITEM0210", "ITEM0501", "MOOD", "PRINCESSCROWN", "TIARA", "YELLOWEAR"}, -1,
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 mStreamer.getFaceuintyFilter().setPropType(which);
+                                dialog.dismiss();
+                            }
+                        })
+                .create();
+        alertDialog.setCancelable(false);
+        alertDialog.show();
+    }
+
+    private void showFaceunityGestureChoose() {
+        AlertDialog alertDialog;
+        alertDialog = new AlertDialog.Builder(this)
+                .setTitle("请选择手势")
+                .setSingleChoiceItems(
+                        new String[]{"HEART"}, -1,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                mStreamer.getFaceuintyFilter().setGestureType(which);
                                 dialog.dismiss();
                             }
                         })

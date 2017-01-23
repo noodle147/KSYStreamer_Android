@@ -29,6 +29,7 @@ public class ImgFaceunityFilter {
     private final static String PROP_TYPE_BEAGLEDOG = "Faceunity/BeagleDog.mp3";
     private final static String PROP_TYPE_COLORGROWN = "Faceunity/ColorCrown.mp3";
     private final static String PROP_TYPE_DEER = "Faceunity/Deer.mp3";
+
     private final static String PROP_TYPE_HAPPYRABBI = "Faceunity/HappyRabbi.mp3";
     private final static String PROP_TYPE_HARTSHORN = "Faceunity/hartshorn.mp3";
     private final static String PROP_TYPE_ITEM0204 = "Faceunity/item0204.mp3";
@@ -38,6 +39,9 @@ public class ImgFaceunityFilter {
     private final static String PROP_TYPE_MOOD = "Faceunity/Mood.mp3";
     private final static String PROP_TYPE_PINCESSCROWN = "Faceunity/PrincessCrown.mp3";
     private final static String PROP_TYPE_TIARA = "Faceunity/tiara.mp3";
+    private final static String PROP_TYPE_YELLLOWEAR = "Faceunity/YellowEar.mp3";
+
+    private final static String GESTURE_TYPE_HEART = "Faceunity/heart.mp3";
 
     private final static String BEAUTY_TYPE_NATURE = "nature";
     private final static String BEAUTY_TYPE_DELTA = "delta";
@@ -58,7 +62,12 @@ public class ImgFaceunityFilter {
             PROP_TYPE_ITEM0501,
             PROP_TYPE_MOOD,
             PROP_TYPE_PINCESSCROWN,
-            PROP_TYPE_TIARA
+            PROP_TYPE_TIARA,
+            PROP_TYPE_YELLLOWEAR
+    };
+
+    private final static String[] GESTURES = {
+            GESTURE_TYPE_HEART
     };
 
     private final static String[] BEAUTYS = {
@@ -77,17 +86,21 @@ public class ImgFaceunityFilter {
 
     private boolean mInited = false;
     private int mFrameID;
-    private int[] m_items = new int[2];
+    private int[] m_items = new int[3];
     private byte[] mInputBufArray = null;
     private float[] mTexMatrix; // flip vertical matrix
     private Object BUF_LOCK = new Object();
 
     private String mPropPath;
     private String mCurrentPropPath;
+    private String mGesturePath;
+    private String mCurrentGesturePath;
     private String mBeautyType;
     private String mCurrentBeautyType;
     public double mBeautyColorLevel = 1.0;
-    public double mBeautyBlurLevel = 8.0;
+    public int mBeautyBlurLevel = 3;
+    public double mBeautyCheekLevel = 0;
+    public double mBeautyEyeLevel = 0;
 
     private Context mContext;
     private int mOutTexture = ImgTexFrame.NO_TEXTURE;
@@ -112,6 +125,19 @@ public class ImgFaceunityFilter {
 
     }
 
+    public void onPause() {
+        mGLRender.queueDrawFrameAppends(new Runnable() {
+            public void run() {
+                if (m_items[2] != 0) {
+                    faceunity.fuDestroyItem(m_items[2]);
+                    m_items[2] = 0;
+                }
+                faceunity.fuOnDeviceLost();
+                mFrameID = 0;
+            }
+        });
+    }
+
     public SinkPin<ImgTexFrame> getTexSinkPin() {
         return mTexSinkPin;
     }
@@ -125,17 +151,26 @@ public class ImgFaceunityFilter {
     }
 
     /**
-     * 0~11 使用贴纸，其它不使用贴纸
+     * 0~12 使用贴纸，其它不使用贴纸
      *
      * @param index
      */
     public void setPropType(int index) {
-        if (index > 11 || index < 0) {
+        if (index >= PROPS.length || index < 0) {
             mPropPath = null;
             return;
         }
 
         mPropPath = PROPS[index];
+    }
+
+    public void setGestureType(int index) {
+        if (index >= GESTURES.length || index < 0) {
+            mGesturePath = null;
+            return;
+        }
+
+        mGesturePath = GESTURES[index];
     }
 
     /**
@@ -158,6 +193,7 @@ public class ImgFaceunityFilter {
 
     /**
      * 美白级别 1.0 是默认值
+     *
      * @param colorLevel
      */
     public void setBeautyColorLevel(double colorLevel) {
@@ -165,12 +201,41 @@ public class ImgFaceunityFilter {
     }
 
     /**
-     * 磨皮级别 8.0 是默认值
-     * 中等磨皮可以设置为 8.0 ，重度磨皮可以设置为 16.0
+     * 磨皮级别 3.0 是默认值，取值范围0-5
+     * 中等磨皮可以设置为 3.0 ，重度磨皮可以设置为 5.0
+     *
      * @param blurLevel
      */
-    public void setBeautyBlurLevel(double blurLevel) {
+    public void setBeautyBlurLevel(int blurLevel) {
         mBeautyBlurLevel = blurLevel;
+    }
+
+    /**
+     * 设置瘦脸级别，默认为0
+     * 0为关闭效果，1为默认效果，大于1为进一步增强效果
+     *
+     * @param cheekLevel
+     */
+    public void setBeautyCheekLevel(double cheekLevel) {
+        mBeautyCheekLevel = cheekLevel;
+    }
+
+    public double getBeautyCheekLevel() {
+        return mBeautyCheekLevel;
+    }
+
+    public double getBeautyEyeLevel() {
+        return mBeautyEyeLevel;
+    }
+
+    /**
+     * 设置大眼级别
+     * 0为关闭效果，1为默认效果，大于1为进一步增强效果
+     *
+     * @param eyeLevel
+     */
+    public void setBeautyEyeLevel(double eyeLevel) {
+        mBeautyEyeLevel = eyeLevel;
     }
 
     public double getBeautyBlurLvevl() {
@@ -202,7 +267,6 @@ public class ImgFaceunityFilter {
                      * @param v3data
                      * @param null, old parameter, consider removed in the future
                      * @param authpack.A(), auth key byte array content
-                     * 需要联系Faceunity获取鉴权，demo中的只是临时的
                      **/
                     faceunity.fuSetup(v3data, null, authpack.A());
                     mInited = true;
@@ -234,6 +298,7 @@ public class ImgFaceunityFilter {
         @Override
         public void onReleased() {
             faceunity.fuOnDeviceLost();
+            mFrameID = 0;
         }
     };
 
@@ -277,7 +342,16 @@ public class ImgFaceunityFilter {
                         }
                     }
 
-                    if (m_items[0] != 0 || m_items[1] != 0) {
+                    if (!TextUtils.isEmpty(mGesturePath)) {
+                        createGestureItem();
+                    } else {
+                        if (m_items[2] != 0) {
+                            faceunity.fuDestroyItem(m_items[2]);
+                            m_items[2] = 0;
+                        }
+                    }
+
+                    if (m_items[0] != 0 || m_items[1] != 0 || m_items[2] != 0) {
                         if (mOutTexture == ImgTexFrame.NO_TEXTURE) {
                             mOutTexture = FboManager.getInstance()
                                     .getTextureAndLock(frame.format.width, frame.format.height);
@@ -373,6 +447,32 @@ public class ImgFaceunityFilter {
         }
     }
 
+    private void createGestureItem() {
+        //第一次显示手势，给mCurrentGesturePath赋值
+        if (TextUtils.isEmpty(mCurrentGesturePath)) {
+            mCurrentGesturePath = mGesturePath;
+        }
+        //切换贴纸时，释放上一次的贴纸
+        if (!mCurrentGesturePath.equals(mGesturePath) && m_items[2] != 0) {
+            faceunity.fuDestroyItem(m_items[2]);
+            m_items[2] = 0;
+        }
+        mCurrentGesturePath = mGesturePath;
+        //创建贴纸
+        if (m_items[2] == 0) {
+            try {
+                InputStream is = ImgFaceunityFilter.this.mContext.getAssets().open
+                        (mCurrentGesturePath);
+                byte[] item_data = new byte[is.available()];
+                is.read(item_data);
+                is.close();
+                m_items[2] = faceunity.fuCreateItemFromPackage(item_data);
+            } catch (IOException e) {
+                Log.e(TAG, "IOException: " + e);
+            }
+        }
+    }
+
     private void createBeautyItem() {
         //创建美颜
         if (m_items[1] == 0) {
@@ -391,7 +491,9 @@ public class ImgFaceunityFilter {
         //第一次开启美颜，mCurrentBeautyType
         mCurrentBeautyType = mBeautyType;
         faceunity.fuItemSetParam(m_items[1], "filter_name", mCurrentBeautyType);
-        faceunity.fuItemSetParam(m_items[1], "blur_radius", mBeautyBlurLevel);
+        faceunity.fuItemSetParam(m_items[1], "blur_level", mBeautyBlurLevel);
         faceunity.fuItemSetParam(m_items[1], "color_level", mBeautyColorLevel);
+        faceunity.fuItemSetParam(m_items[1], "cheek_thinning", mBeautyCheekLevel);
+        faceunity.fuItemSetParam(m_items[1], "eye_enlarging", mBeautyEyeLevel);
     }
 }

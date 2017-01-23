@@ -2,11 +2,14 @@ package com.ksyun.media.diversity.faceunity.kit;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.TextureView;
 
 import com.ksyun.media.streamer.capture.AudioCapture;
+import com.ksyun.media.streamer.capture.AudioDummyCapture;
 import com.ksyun.media.streamer.capture.AudioPlayerCapture;
 import com.ksyun.media.streamer.capture.CameraCapture;
 import com.ksyun.media.streamer.capture.WaterMarkCapture;
@@ -48,7 +51,7 @@ public class KSYFaceunityStreamer {
 
     private static final String TAG = "KSYFaceunityStreamer";
     private static final boolean DEBUG = false;
-    public static final String VERSION = "1.0.0.2";
+    public static final String VERSION = "1.0.1.1";
 
     private Context mContext;
 
@@ -79,7 +82,6 @@ public class KSYFaceunityStreamer {
     private boolean mFrontCameraMirror = false;
     private boolean mEnableStreamStatModule = true;
     private int mCameraFacing = CameraCapture.FACING_FRONT;
-    private boolean mAudioOnlySetByUser = false;
 
     private boolean mIsRecording = false;
     private boolean mIsFileRecording = false;
@@ -89,6 +91,9 @@ public class KSYFaceunityStreamer {
     private boolean mDelayedStartCameraPreview = false;
     private boolean mEnableDebugLog = false;
     private boolean mEnableAudioMix = false;
+    private boolean mUseDummyAudioCapture = false;
+    private boolean mAutoRestart = false;
+    private int mAutoRestartInterval = 3000;
 
     private KSYStreamer.OnInfoListener mOnInfoListener;
     private KSYStreamer.OnErrorListener mOnErrorListener;
@@ -100,6 +105,7 @@ public class KSYFaceunityStreamer {
     private ImgTexMixer mImgTexMixer;
     private ImgTexFilterMgt mImgTexFilterMgt;
     private AudioCapture mAudioCapture;
+    private AudioDummyCapture mAudioDummyCapture;
     private VideoEncoderMgt mVideoEncoderMgt;
     private AudioEncoderMgt mAudioEncoderMgt;
     private RtmpPublisher mRtmpPublisher;
@@ -112,7 +118,12 @@ public class KSYFaceunityStreamer {
     private FilePublisher mFilePublisher;
     private PublisherMgt mPublisherMgt;
 
+    private Handler mMainHandler;
+
     //faceunity
+    private boolean mEnableFaceunityProp;
+    private boolean mEnableFaceunityGesture;
+
     private ImgFaceunityFilter mFaceunityFilter;
     private ImgYFlipFilter mImgYFlipFilter;
     private ImgBufScaleFilter mFaceunityScale;
@@ -122,6 +133,7 @@ public class KSYFaceunityStreamer {
             throw new IllegalArgumentException("Context cannot be null!");
         }
         mContext = context.getApplicationContext();
+        mMainHandler = new Handler(Looper.getMainLooper());
         initModules();
     }
 
@@ -157,11 +169,13 @@ public class KSYFaceunityStreamer {
         // Audio preview
         mAudioPlayerCapture = new AudioPlayerCapture(mContext);
         mAudioCapture = new AudioCapture();
+        mAudioDummyCapture = new AudioDummyCapture();
         mAudioResampleFilter = new AudioResampleFilter();
         mAudioFilterMgt = new AudioFilterMgt();
         mAudioMixer = new AudioMixer();
         mAudioPreview = new AudioPreview();
         mAudioCapture.mAudioBufSrcPin.connect(mAudioResampleFilter.getSinkPin());
+        mAudioDummyCapture.getSrcPin().connect(mAudioResampleFilter.getSinkPin());
         mAudioResampleFilter.getSrcPin().connect(mAudioFilterMgt.getSinkPin());
         mAudioFilterMgt.getSrcPin().connect(mAudioMixer.getSinkPin(0));
         if (mEnableAudioMix) {
@@ -213,6 +227,7 @@ public class KSYFaceunityStreamer {
                 if (mOnErrorListener != null) {
                     mOnErrorListener.onError(what, 0, 0);
                 }
+                //do not need to auto restart
             }
         });
 
@@ -242,6 +257,9 @@ public class KSYFaceunityStreamer {
                     case CameraCapture.CAMERA_ERROR_SERVER_DIED:
                         what = StreamerConstants.KSY_STREAMER_CAMERA_ERROR_SERVER_DIED;
                         break;
+                    case CameraCapture.CAMERA_ERROR_EVICTED:
+                        what = StreamerConstants.KSY_STREAMER_CAMERA_ERROR_EVICTED;
+                        break;
                     case CameraCapture.CAMERA_ERROR_UNKNOWN:
                     default:
                         what = StreamerConstants.KSY_STREAMER_CAMERA_ERROR_UNKNOWN;
@@ -250,6 +268,7 @@ public class KSYFaceunityStreamer {
                 if (mOnErrorListener != null) {
                     mOnErrorListener.onError(what, 0, 0);
                 }
+                //do not need to auto restart
             }
         });
 
@@ -280,6 +299,7 @@ public class KSYFaceunityStreamer {
                                 StreamerConstants.KSY_STREAMER_AUDIO_ENCODER_ERROR_UNKNOWN;
                         break;
                 }
+                //do not need to auto restart
                 if (mOnErrorListener != null) {
                     mOnErrorListener.onError(what, 0, 0);
                 }
@@ -381,6 +401,8 @@ public class KSYFaceunityStreamer {
                             break;
                     }
                     mOnErrorListener.onError(status, (int) msg, 0);
+                    //do need to auto restart
+                    autoRestart();
                 }
             }
         });
@@ -437,6 +459,7 @@ public class KSYFaceunityStreamer {
                     }
                     mOnErrorListener.onError(status, (int) msg, 0);
                 }
+                //do not need to restart
             }
         });
     }
@@ -585,6 +608,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get streaming url
+     *
      * @return streaming url
      */
     public String getUrl() {
@@ -607,6 +631,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get rotate degrees
+     *
      * @return degrees Degrees in anti-clockwise, only 0, 90, 180, 270 accepted.
      */
     public int getRotateDegrees() {
@@ -642,11 +667,11 @@ public class KSYFaceunityStreamer {
      * {@link #startCameraPreview(int)} call.
      *
      * @param idx Resolution index.<br/>
+     * @throws IllegalArgumentException
      * @see StreamerConstants#VIDEO_RESOLUTION_360P
      * @see StreamerConstants#VIDEO_RESOLUTION_480P
      * @see StreamerConstants#VIDEO_RESOLUTION_540P
      * @see StreamerConstants#VIDEO_RESOLUTION_720P
-     * @throws IllegalArgumentException
      */
     public void setPreviewResolution(int idx) throws IllegalArgumentException {
         if (idx < StreamerConstants.VIDEO_RESOLUTION_360P ||
@@ -660,6 +685,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get preview width
+     *
      * @return preview width
      */
     public int getPreviewWidth() {
@@ -668,6 +694,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get preview height
+     *
      * @return preview height
      */
     public int getPreviewHeight() {
@@ -697,6 +724,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get preview frame rate
+     *
      * @return preview frame rate
      */
     public float getPreviewFps() {
@@ -836,6 +864,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get streaming width
+     *
      * @return streaming width
      */
     public int getTargetWidth() {
@@ -877,6 +906,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get streaming fps
+     *
      * @return streaming fps
      */
     public float getTargetFps() {
@@ -901,6 +931,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get key frames interval in seconds
+     *
      * @return key frame interval in seconds.
      */
     public float getIFrameInterval() {
@@ -944,7 +975,7 @@ public class KSYFaceunityStreamer {
      * @throws IllegalArgumentException
      */
     public void setVideoBitrate(int initVideoBitrate, int maxVideoBitrate, int minVideoBitrate)
-            throws IllegalArgumentException  {
+            throws IllegalArgumentException {
         if (initVideoBitrate <= 0 || maxVideoBitrate <= 0 || minVideoBitrate <= 0) {
             throw new IllegalArgumentException("the VideoBitrate must > 0");
         }
@@ -967,7 +998,7 @@ public class KSYFaceunityStreamer {
     public void setVideoKBitrate(int initVideoKBitrate,
                                  int maxVideoKBitrate,
                                  int minVideoKBitrate)
-            throws IllegalArgumentException  {
+            throws IllegalArgumentException {
         setVideoBitrate(initVideoKBitrate * 1024,
                 maxVideoKBitrate * 1024,
                 minVideoKBitrate * 1024);
@@ -975,6 +1006,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get init video bit rate
+     *
      * @return init video bit rate
      */
     public int getInitVideoBitrate() {
@@ -983,6 +1015,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get min video bit rate
+     *
      * @return min video bit rate
      */
     public int getMinVideoBitrate() {
@@ -991,6 +1024,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get max video bit rate
+     *
      * @return max video bit rate
      */
     public int getMaxVideoBitrate() {
@@ -999,6 +1033,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * check if is auto adjust video bit rate
+     *
      * @return true if enabled false if disabled
      */
     public boolean isAutoAdjustVideoBitrate() {
@@ -1009,8 +1044,8 @@ public class KSYFaceunityStreamer {
      * Set codec id to video encoder.
      *
      * @param codecId video codec id to set.
-     *                @see AVConst#CODEC_ID_AVC
-     *                @see AVConst#CODEC_ID_HEVC
+     * @see AVConst#CODEC_ID_AVC
+     * @see AVConst#CODEC_ID_HEVC
      */
     public void setVideoCodecId(int codecId) {
         mVideoCodecId = codecId;
@@ -1034,6 +1069,7 @@ public class KSYFaceunityStreamer {
      *              default value {@link VideoEncodeFormat#ENCODE_SCENE_SHOWSELF}
      * @see VideoEncodeFormat#ENCODE_SCENE_DEFAULT
      * @see VideoEncodeFormat#ENCODE_SCENE_SHOWSELF
+     * @see VideoEncodeFormat#ENCODE_SCENE_GAME
      */
     public void setVideoEncodeScene(int scene) {
         mEncodeScene = scene;
@@ -1041,6 +1077,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * Get scene mode for video encoder.
+     *
      * @return scene mode
      */
     public int getVideoEncodeScene() {
@@ -1064,6 +1101,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * Get encode profile for video encoder.
+     *
      * @return encode profile mode
      */
     public int getVideoEncodeProfile() {
@@ -1131,6 +1169,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get audio bitrate in bps.
+     *
      * @return audio bitrate in bps
      */
     public int getAudioBitrate() {
@@ -1139,6 +1178,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get audio sample rate.
+     *
      * @return audio sample rate in hz
      */
     public int getAudioSampleRate() {
@@ -1147,6 +1187,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get audio channel number
+     *
      * @return audio channel number
      */
     public int getAudioChannels() {
@@ -1167,6 +1208,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * check if front camera mirror enabled or not.
+     *
      * @return true if mirror enabled, false if mirror disabled.
      */
     public boolean isFrontCameraMirrorEnabled() {
@@ -1188,6 +1230,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get camera facing.
+     *
      * @return camera facing
      */
     public int getCameraFacing() {
@@ -1383,7 +1426,11 @@ public class KSYFaceunityStreamer {
         mIsCaptureStarted = true;
         setAudioParams();
         setRecordingParams();
-        mAudioCapture.start();
+        if (!mUseDummyAudioCapture) {
+            mAudioCapture.start();
+        } else {
+            mAudioDummyCapture.start();
+        }
         mCameraCapture.startRecord();
     }
 
@@ -1395,8 +1442,9 @@ public class KSYFaceunityStreamer {
             return;
         }
         mIsCaptureStarted = false;
-        if (!mIsAudioPreviewing && mAudioCapture.isRecordingState()) {
+        if (!mIsAudioPreviewing) {
             mAudioCapture.stop();
+            mAudioDummyCapture.stop();
         }
         if (mCameraCapture.isRecording()) {
             mCameraCapture.stopRecord();
@@ -1443,13 +1491,6 @@ public class KSYFaceunityStreamer {
      * @param audioOnly true to enable, false to disable.
      */
     public void setAudioOnly(boolean audioOnly) {
-        setAudioOnly(audioOnly, false);
-    }
-
-    private void setAudioOnly(boolean audioOnly, boolean internal) {
-        if (!internal) {
-            mAudioOnlySetByUser = audioOnly;
-        }
         if (mIsAudioOnly == audioOnly) {
             return;
         }
@@ -1470,13 +1511,34 @@ public class KSYFaceunityStreamer {
     }
 
     /**
+     * Enable to use AudioDummyCapture to output silence audio data
+     * instead of mic data captured by AudioCapture or not.
+     *
+     * @param enable true to use AudioDummyCapture false to use AudioCapture
+     */
+    public void setUseDummyAudioCapture(boolean enable) {
+        mUseDummyAudioCapture = enable;
+        if (enable) {
+            if (mAudioCapture.isRecordingState()) {
+                mAudioCapture.stop();
+                mAudioDummyCapture.start();
+            }
+        } else {
+            if (mAudioDummyCapture.isRecordingState()) {
+                mAudioDummyCapture.stop();
+                mAudioCapture.start();
+            }
+        }
+    }
+
+    /**
      * Should be called on Activity.onResume or Fragment.onResume.
      */
     public void onResume() {
         Log.d(TAG, "onResume");
         mGLRender.onResume();
-        if (mIsRecording && !mAudioOnlySetByUser) {
-            setAudioOnly(false, true);
+        if (mIsRecording && !mIsAudioOnly) {
+            getVideoEncoderMgt().getEncoder().stopRepeatLastFrame();
         }
     }
 
@@ -1485,9 +1547,10 @@ public class KSYFaceunityStreamer {
      */
     public void onPause() {
         Log.d(TAG, "onPause");
+        mFaceunityFilter.onPause();
         mGLRender.onPause();
-        if (mIsRecording && !mAudioOnlySetByUser) {
-            setAudioOnly(true, true);
+        if (mIsRecording && !mIsAudioOnly) {
+            getVideoEncoderMgt().getEncoder().startRepeatLastFrame();
         }
     }
 
@@ -1676,6 +1739,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * check if audio mix is enabled.
+     *
      * @return true if enable, false if not.
      */
     public boolean isAudioMixEnabled() {
@@ -1693,6 +1757,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * get mic volume
+     *
      * @return volume in 0~1.0f.
      */
     public float getVoiceVolume() {
@@ -1726,6 +1791,7 @@ public class KSYFaceunityStreamer {
 
     /**
      * check if audio is muted or not.
+     *
      * @return
      */
     public boolean isAudioMuted() {
@@ -1742,12 +1808,17 @@ public class KSYFaceunityStreamer {
         mIsAudioPreviewing = enable;
         if (enable) {
             setAudioParams();
-            mAudioCapture.start();
+            if (!mUseDummyAudioCapture) {
+                mAudioCapture.start();
+            } else {
+                mAudioDummyCapture.start();
+            }
             mAudioPreview.start();
             mAudioPlayerCapture.setMute(true);
         } else {
             if (!mIsRecording) {
                 mAudioCapture.stop();
+                mAudioDummyCapture.stop();
             }
             mAudioPreview.stop();
             mAudioPlayerCapture.setMute(false);
@@ -1756,10 +1827,31 @@ public class KSYFaceunityStreamer {
 
     /**
      * check if audio preview is enabled or not.
+     *
      * @return true if audio preview is enabled
      */
     public boolean isAudioPreviewing() {
         return mIsAudioPreviewing;
+    }
+
+    /**
+     * auto restart streamer when the following error occurred
+     *
+     * @param enable   default false
+     * @param interval the restart interval(ms) default 3000
+     * @see StreamerConstants#KSY_STREAMER_ERROR_CONNECT_BREAKED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_DNS_PARSE_FAILED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_CONNECT_FAILED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_PUBLISH_FAILED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_AV_ASYNC
+     */
+    public void setEnableAutoRestart(boolean enable, int interval) {
+        mAutoRestart = enable;
+        mAutoRestartInterval = interval;
+    }
+
+    public boolean getEnableAutoRestart() {
+        return mAutoRestart;
     }
 
     /**
@@ -1848,28 +1940,37 @@ public class KSYFaceunityStreamer {
      * Release all resources used by KSYStreamer.
      */
     public void release() {
+        if (mMainHandler != null) {
+            mMainHandler.removeCallbacksAndMessages(null);
+            mMainHandler = null;
+        }
+
         mCameraCapture.release();
         mAudioCapture.release();
+        mAudioDummyCapture.release();
         mWaterMarkCapture.release();
         mAudioPlayerCapture.release();
         mGLRender.release();
+        setOnLogEventListener(null);
     }
 
     /**
      * request screen shot with resolution of the screen
+     *
      * @param screenShotListener the listener to be called when bitmap of the screen shot available
      */
     public void requestScreenShot(GLRender.ScreenShotListener screenShotListener) {
-        mGLRender.requestScreenShot(screenShotListener);
+        mImgTexMixer.requestScreenShot(screenShotListener);
     }
 
     /**
      * request screen shot with scale factor
-     * @param scaleFactor the scale factor of the bitmap, between 0~1.0.
+     *
+     * @param scaleFactor        the scale factor of the bitmap, between 0~1.0.
      * @param screenShotListener the listener to be called when bitmap of the screen shot available
      */
     public void requestScreenShot(float scaleFactor, GLRender.ScreenShotListener screenShotListener) {
-        mGLRender.requestScreenShot(scaleFactor, screenShotListener);
+        mImgTexMixer.requestScreenShot(scaleFactor, screenShotListener);
     }
 
     private GLRender.GLRenderListener mGLRenderListener = new GLRender.GLRenderListener() {
@@ -1897,6 +1998,20 @@ public class KSYFaceunityStreamer {
         }
     };
 
+    private void autoRestart() {
+        if (mAutoRestart) {
+            if (mMainHandler != null) {
+                stopStream();
+                mMainHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        startStream();
+                    }
+                }, mAutoRestartInterval);
+            }
+        }
+    }
+
     //faceunity
     public ImgFaceunityFilter getFaceuintyFilter() {
         return mFaceunityFilter;
@@ -1906,6 +2021,7 @@ public class KSYFaceunityStreamer {
      * 连接buffer数据，用于人脸识别
      */
     public void showFaceunityProp() {
+        mEnableFaceunityProp = true;
         mCameraCapture.mImgBufSrcPin.connect(mFaceunityScale.getSinkPin());
     }
 
@@ -1913,8 +2029,25 @@ public class KSYFaceunityStreamer {
      * 没有开启贴纸功能时disconnect，否则浪费cpu
      */
     public void hideFaceunityProp() {
-        mCameraCapture.mImgBufSrcPin.disconnect(mFaceunityScale.getSinkPin(), false);
+        mEnableFaceunityProp = false;
+        disconnectFaceunityData();
     }
 
+    public void showFaceunityGesture() {
+        mEnableFaceunityGesture = true;
+        mCameraCapture.mImgBufSrcPin.connect(mFaceunityScale.getSinkPin());
+    }
 
+    public void hideFaceunityGesture() {
+        mEnableFaceunityGesture = false;
+        disconnectFaceunityData();
+    }
+
+    private void disconnectFaceunityData() {
+        if (mEnableFaceunityProp || mEnableFaceunityGesture) {
+            return;
+        }
+
+        mCameraCapture.mImgBufSrcPin.disconnect(mFaceunityScale.getSinkPin(), false);
+    }
 }
