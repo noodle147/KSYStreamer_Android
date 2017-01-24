@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/materials_currency_detail_framelayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone">
+    <LinearLayout android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:orientation="vertical"
+        android:background="@color/water_white">
+        <RelativeLayout android:id="@+id/detail_title"
+            android:layout_height="30dp"
+            android:layout_width="match_parent"
+            android:background="@color/black">
+            <TextView android:id="@+id/back"
+                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:layout_marginLeft="10dp"
+                android:textSize="20dp"
+                android:textColor="@color/water_white"
+                android:text="@string/back"/>
+            <TextView android:id="@+id/title"
+                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentTop="true"
+                android:textSize="20dp"
+                android:textColor="@color/water_white"
+                android:text="@string/ads_title"/>
+
+        </RelativeLayout>
+        <ImageView android:id="@+id/details"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ads_currency_detail"/>
+    </LinearLayout>
+</FrameLayout>

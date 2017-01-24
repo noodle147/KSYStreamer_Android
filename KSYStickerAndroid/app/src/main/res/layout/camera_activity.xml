@@ -51,4 +51,79 @@
         android:layout_alignParentBottom="true"
         layout="@layout/camera_bottombar" />
 
+    <include layout="@layout/makemoney_agreement_layout" />
+    <include layout="@layout/ads_currency_detail_layout" />
+
+    <RelativeLayout android:id="@+id/materials_show_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="310dp"
+                    android:layout_alignParentBottom="true"
+                    android:visibility="gone">
+        <ImageButton android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:id="@+id/close_materialsshow"
+                     android:layout_alignParentTop="true"
+                     android:layout_alignParentRight="true"
+                     android:layout_marginRight="10dp"
+                     android:background="@drawable/close_ads_show"/>
+        <ImageButton android:layout_width="wrap_content"
+                     android:layout_height="wrap_content"
+                     android:id="@+id/question"
+                     android:layout_toLeftOf="@+id/close_materialsshow"
+                     android:layout_alignParentTop="true"
+                     android:tag="1"
+                     android:layout_marginRight="25dp"
+                     android:background="@drawable/ques"/>
+        <FrameLayout android:id="@+id/materialslist_framelayout"
+                     android:layout_height="wrap_content"
+                     android:layout_width="match_parent"
+                     android:layout_alignParentBottom="true">
+            <RelativeLayout android:id="@+id/adslist_relativelayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+                <LinearLayout android:id = "@+id/listview_layout"
+                              android:layout_height="220dp"
+                              android:layout_width="match_parent"
+                              android:layout_above="@+id/stickertype_view"
+                              android:background="@color/grey_bg">
+                    <!--
+                <com.sensetime.stcamerastreamingdemo.widget.HorizontalListView
+                    android:id="@+id/horizontalListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginBottom="5dp"
+                    android:padding="2dp"
+                    ></com.sensetime.stcamerastreamingdemo.widget.HorizontalListView>
+                    -->
+                    <GridView android:id="@+id/grid_view"
+                              android:layout_width="match_parent"
+                              android:layout_height="match_parent"
+                              android:numColumns="4"
+                              android:horizontalSpacing="5dp"
+                              android:verticalSpacing="5dp"
+                              android:gravity="center"
+                              android:scrollbarAlwaysDrawVerticalTrack="true"/>
+                </LinearLayout>
+
+                <com.ksyun.media.diversity.sticker.demo.widget.HorizontalListView
+                    android:id="@+id/stickertype_view"
+                    android:layout_height="50dp"
+                    android:layout_width="match_parent"
+                    android:background="@color/stickertype_bg"
+                    android:layout_alignParentBottom="true"/>
+            </RelativeLayout>
+        </FrameLayout>
+        <FrameLayout android:id="@+id/materials_introduction"
+                     android:layout_width="match_parent"
+                     android:layout_height="wrap_content"
+                     android:visibility="gone"
+                     android:layout_alignParentBottom="true">
+            <ImageView android:layout_height="wrap_content"
+                       android:layout_width="match_parent"
+                       android:layout_alignParentBottom="true"
+                       android:src="@drawable/content"/>
+        </FrameLayout>
+    </RelativeLayout>
+
 </RelativeLayout>

@@ -80,4 +80,18 @@
 
     <color name="trans_parent">#00000000</color>
 
+    <color name="grey_bg">#B02b2b2b</color>
+    <color name="dark_grey_bg">#ff2b2b2b</color>
+    <color name="middle_grey_bg">#F12b2b2b</color>
+    <color name="water_white">#ffffffff</color>
+    <color name="cost_color">#f4e139</color>
+    <color name="adscurrency_text">#fdd23c</color>
+    <color name="black">#ff000000</color>
+    <color name="color_text">#ffffffff</color>
+    <color name="agreement_btn_color">#fdd23c</color>
+    <color name="agreement_cancel_btn_color">#afaca1</color>
+    <color name="sticker_on_bg">#B0303030</color>
+    <color name="stickertype_bg">#ff242424</color>
+
+
 </resources>

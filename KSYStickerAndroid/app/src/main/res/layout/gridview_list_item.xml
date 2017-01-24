@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingLeft="2dip"
+    android:paddingRight="2dip"
+    android:paddingTop="2dip"
+    android:paddingBottom="2dip"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:clickable="false"
+    android:descendantFocusability="blocksDescendants">
+
+    <FrameLayout android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <RelativeLayout android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+            <ImageView
+                android:id="@+id/gimg_list_item"
+                android:layout_width="50dp"
+                android:layout_height="50dp"/>
+            <ImageView
+                android:id="@+id/download_ind"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:background="@drawable/download"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentRight="true"/>
+        </RelativeLayout>
+        <ProgressBar android:id="@+id/process_download"
+            android:layout_height="30dp"
+            android:layout_width="30dp"
+            android:layout_gravity="center"
+            android:visibility="gone"/>
+        <com.ksyun.media.diversity.sticker.demo.widget.CircleProgressBar
+            android:id="@+id/circle_progressbar"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:visibility="gone"
+            android:layout_gravity="center" />
+    </FrameLayout>
+    <LinearLayout android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:orientation="horizontal">
+        <ImageView android:id="@+id/ads_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="10dp"
+            android:src="@drawable/eye"/>
+        <TextView
+            android:id="@+id/gtext_list_item"
+            style="@style/fun_show_icon"
+            android:layout_width="70dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:textSize="10dp" />
+        </LinearLayout>
+
+</LinearLayout>

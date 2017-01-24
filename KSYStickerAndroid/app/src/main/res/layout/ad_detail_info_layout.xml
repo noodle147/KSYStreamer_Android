@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_alignParentBottom="true"
+    android:id="@+id/material_detailinfo_layout"
+    android:layout_height="470dp"
+    android:visibility="gone">
+    <ImageButton android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/disable_wear"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="10dp"
+        android:background="@drawable/close_ads_show"/>
+    <RelativeLayout android:layout_width="match_parent"
+        android:layout_alignParentBottom="true"
+        android:id="@+id/ad_detailinfo_panel"
+        android:layout_height="420dp"
+        android:background="@color/middle_grey_bg">
+        <TextView android:id="@+id/material_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="20dp"
+            android:layout_centerHorizontal="true"
+            android:textColor="@color/water_white"
+            android:textSize="20dp"/>
+        <ImageView android:id="@+id/material_thumb"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="15dp"
+            android:layout_below="@+id/material_title"/>
+
+        <LinearLayout
+            android:id="@+id/material_trigger_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/material_thumb"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="15dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/material_trigger_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginRight="5dp"
+                />
+
+            <TextView
+                android:id="@+id/material_trigger_ind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/water_white"
+                android:textSize="20dp" />
+        </LinearLayout>
+
+        <LinearLayout android:id = "@+id/ad_cost"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:layout_below="@+id/material_trigger_layout"
+            android:layout_centerHorizontal="true"
+            android:orientation="horizontal">
+            <ImageView android:id="@+id/material_detail_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginLeft="10dp"
+                android:src="@drawable/eye"/>
+            <TextView
+                android:id="@+id/material_detail_cost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textSize="15dp"
+                android:textColor="@color/cost_color" />
+        </LinearLayout>
+
+        <TextView android:id="@+id/material_detail"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:textSize="12dp"
+            android:textColor="@color/water_white"
+            android:lines="3"
+            android:ellipsize="end"
+            android:gravity="center_horizontal"
+            android:layout_below="@+id/ad_cost"
+            android:layout_margin="30dp"
+            android:layout_centerHorizontal="true"/>
+        <Button android:id="@+id/enable_sticker_btn"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="50dp"
+            android:background="@color/adscurrency_text"
+            android:text="@string/start_enable_sticker"/>
+        </RelativeLayout>
+</RelativeLayout>

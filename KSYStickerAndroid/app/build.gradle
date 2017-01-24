@@ -4,7 +4,7 @@ android {
     compileSdkVersion 24
     buildToolsVersion "24.0.1"
     defaultConfig {
-        applicationId "com.ksyun.media.diversity.sticker.ksystickerandroid"
+        applicationId "com.ksyun.media.diversity.sticker.demo"
         minSdkVersion 18
         targetSdkVersion 24
         versionCode 1
@@ -24,6 +24,12 @@ android {
     }
 }
 
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
@@ -31,4 +37,10 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:24.2.1'
     testCompile 'junit:junit:4.12'
+    compile (name:'sensearsdk-release', ext: 'aar')
+    compile 'com.ksyun.media:libksylive-java:2.2.1'
+    compile 'com.ksyun.media:libksylive-arm64:2.2.1'
+    compile 'com.ksyun.media:libksylive-armv7a:2.2.1'
+    compile 'com.ksyun.media:libksylive-x86:2.2.1'
+//    compile project(':libksystreamer')
 }

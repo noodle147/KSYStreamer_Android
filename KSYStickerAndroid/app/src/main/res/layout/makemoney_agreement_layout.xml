@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/intr_for_materials_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone"
+    android:background="@drawable/agreement_page">
+    <RelativeLayout android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="120dp"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:orientation="horizontal">
+            <Button android:id="@+id/cancel_btn"
+                android:layout_height="30dp"
+                android:layout_width="wrap_content"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:background="@color/agreement_cancel_btn_color"
+                android:layout_weight="1.0"
+                android:text="@string/cancel"/>
+            <Button android:id="@+id/start_gain_btn"
+                android:layout_height="30dp"
+                android:layout_width="wrap_content"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_weight="1.0"
+                android:background="@color/agreement_btn_color"
+                android:text="@string/start_make_money"/>
+        </LinearLayout>
+    </RelativeLayout>
+</FrameLayout>
