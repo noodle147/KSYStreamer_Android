@@ -56,6 +56,7 @@
 1. 2016.12.6, [商汤动态贴纸](KSYStickerAndroid)上线  
 1. 2016.12.28, [声网连麦](Agora)上线  
 1. 2017.1.6, [Faceunity动态贴纸](KSYFaceunityAndroid)上线  
+1. 2017.1.18, [涂图美颜](TuSDK)上线   
 1. 2017.1.22, [Faceunity手势识别](KSYFaceunityAndroid)上线   
 1. 2017.1.24, [商汤手势识别](KSYStickerAndroid)上线  
 
