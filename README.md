@@ -32,9 +32,9 @@
 * [第三方相机接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
 * 短视频录制
 * 边录制边推流
-* [商汤动态贴纸](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
+* [商汤动态贴纸、手势识别](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
 * [Faceunity动态贴纸](KSYFaceunityAndroid)
-* 涂图美颜(Coming soon)
+* [涂图美颜](TuSDK)  
 * [画中画](KSYPipStreamerAndroid)
 * [金山云连麦](https://github.com/ksvc/KSYRTCLive_Android)
 * [声网连麦](Agora)
