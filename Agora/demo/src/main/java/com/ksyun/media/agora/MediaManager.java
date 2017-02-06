@@ -3,6 +3,8 @@ package com.ksyun.media.agora;
 import android.content.Context;
 import android.util.Log;
 
+import com.ksyun.media.streamer.demo.R;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +28,7 @@ public class MediaManager extends IRtcEngineEventHandler {
     String channelId;
 
     private AgoraVideoSource videoSource;
+    private int mVideoProfile = VideoProfile.VIDEO_PROFILE_360P;
 
     public interface MediaUiHandler {
         int JOIN_CHANNEL_RESULT = 1;
@@ -40,7 +43,7 @@ public class MediaManager extends IRtcEngineEventHandler {
 
         int LEAVE_CHANNEL = 6;
 
-        int USER_OFFILINE = 7;
+        int USER_OFFLINE = 7;
 
         void onMediaEvent(int event, Object... data);
     }
@@ -51,7 +54,7 @@ public class MediaManager extends IRtcEngineEventHandler {
     }
 
     public void init() {
-        String appId = "e58027d14ffa40c18deaab1754e2fc37";//context.getString(R.string.app_id);
+        String appId = context.getString(R.string.app_id);
 
         if (appId == null || appId.equals("")) {
             throw new IllegalArgumentException("Please set your app_id to strings.app_id");
@@ -74,13 +77,17 @@ public class MediaManager extends IRtcEngineEventHandler {
         uiHandlers.remove(uiHandler);
     }
 
+    public void setVideoProfile(int profile) {
+        mVideoProfile = profile;
+    }
+
     public void joinChannel(String channelId) {
         Log.d(LOG_TAG, "joinChannel " + channelId);
 
         this.channelId = channelId;
 
         rtcEngine.setChannelProfile(Constants.CHANNEL_PROFILE_COMMUNICATION);
-        rtcEngine.setVideoProfile(VideoProfile.VIDEO_PROFILE_360P, true);
+        rtcEngine.setVideoProfile(mVideoProfile, true);
         rtcEngine.setClientRole(ClientRole.CLIENT_ROLE_BROADCASTER, null);
 
         rtcEngine.joinChannel(null, channelId, null, 0);
@@ -119,7 +126,7 @@ public class MediaManager extends IRtcEngineEventHandler {
     @Override
     public void onUserOffline(int uid, int reason) {
         for (MediaUiHandler uiHandler : uiHandlers) {
-            uiHandler.onMediaEvent(MediaUiHandler.USER_OFFILINE, uid);
+            uiHandler.onMediaEvent(MediaUiHandler.USER_OFFLINE, uid);
         }
     }
 

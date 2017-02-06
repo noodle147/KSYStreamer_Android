@@ -24,7 +24,6 @@ public class DemoActivity extends Activity implements OnClickListener {
     private EditText mAudioBitRateEditText;
     private RadioButton mRes360Button;
     private RadioButton mRes480Button;
-    private RadioButton mRes540Button;
     private RadioButton mRes720Button;
 
     private RadioButton mLandscapeButton;
@@ -64,7 +63,6 @@ public class DemoActivity extends Activity implements OnClickListener {
         mAudioBitRateEditText.setInputType(InputType.TYPE_CLASS_NUMBER);
         mRes360Button = (RadioButton) findViewById(R.id.radiobutton1);
         mRes480Button = (RadioButton) findViewById(R.id.radiobutton2);
-        mRes540Button = (RadioButton) findViewById(R.id.radiobutton3);
         mRes720Button = (RadioButton) findViewById(R.id.radiobutton4);
         mLandscapeButton = (RadioButton) findViewById(R.id.orientationbutton1);
         mPortraitButton = (RadioButton) findViewById(R.id.orientationbutton2);
@@ -145,8 +143,6 @@ public class DemoActivity extends Activity implements OnClickListener {
                         videoResolution = StreamerConstants.VIDEO_RESOLUTION_360P;
                     } else if (mRes480Button.isChecked()) {
                         videoResolution = StreamerConstants.VIDEO_RESOLUTION_480P;
-                    } else if (mRes540Button.isChecked()) {
-                        videoResolution = StreamerConstants.VIDEO_RESOLUTION_540P;
                     } else {
                         videoResolution = StreamerConstants.VIDEO_RESOLUTION_720P;
                     }

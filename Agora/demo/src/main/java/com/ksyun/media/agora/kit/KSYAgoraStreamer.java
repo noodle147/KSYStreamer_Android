@@ -1,6 +1,10 @@
 package com.ksyun.media.agora.kit;
 
+import android.bluetooth.BluetoothHeadset;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.opengl.GLSurfaceView;
 import android.text.TextUtils;
 import android.util.Log;
@@ -44,7 +48,6 @@ import com.ksyun.media.streamer.util.gles.GLRender;
 import java.util.Arrays;
 
 import io.agora.rtc.IRtcEngineEventHandler;
-
 /**
  * Created by qyvideo on 12/10/16.
  */
@@ -142,11 +145,15 @@ public class KSYAgoraStreamer {
     public static final int SCALING_MODE_BEST_FIT = 1;
     public static final int SCALING_MODE_CENTER_CROP = 2;
 
+    private MusicIntentReceiver mMusicIntentReceiver;
+    private boolean mHeadSetConnected = false;
+
     public KSYAgoraStreamer(Context context) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null!");
         }
         mContext = context.getApplicationContext();
+        registerHeadsetPlugReceiver();
         initModules();
     }
 
@@ -167,16 +174,12 @@ public class KSYAgoraStreamer {
 
         if (mainScreenType == RTC_MAIN_SCREEN_REMOTE) {
             mImgTexFilterMgt.getSrcPin().connect(mImgTexMixer.getSinkPin(IDX_VIDEO_SUB));
-
             mImgTexFilterMgt.getSrcPin().connect(mRTCImgTexScaleFilter.getSinkPin());
-            mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexMixer.getSinkPin(IDX_VIDEO_MAIN));
 
             mImgTexMixer.setMainSinkPinIndex(IDX_VIDEO_SUB);
         } else if (mainScreenType == RTC_MAIN_SCREEN_CAMERA){
             mImgTexFilterMgt.getSrcPin().connect(mImgTexMixer.getSinkPin(IDX_VIDEO_MAIN));
-
             mImgTexFilterMgt.getSrcPin().connect(mRTCImgTexScaleFilter.getSinkPin());
-            mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexMixer.getSinkPin(IDX_VIDEO_SUB));
 
             mImgTexMixer.setMainSinkPinIndex(IDX_VIDEO_MAIN);
         }
@@ -572,33 +575,34 @@ public class KSYAgoraStreamer {
                         boolean success = (Boolean) data[0];
 
                         if (success) {
-                           mMediaManager.getRtcEngine().setEnableSpeakerphone(true);
-                            Log.e("sujia", "enable speaker phone");
+                            if (!mHeadSetConnected) {
+                                mMediaManager.getRtcEngine().setEnableSpeakerphone(true);
+                            }
                         } else {
 
                         }
-
                         mRTCClient.getRTCIO().startReceiveRemoteData();
                         break;
                     }
 
                     case MediaManager.MediaUiHandler.FIRST_FRAME_DECODED: {
+                        //收到辅播数据后，设置辅播画面为大窗口
                         setRTCMainScreen(RTC_MAIN_SCREEN_REMOTE);
+                        //显示辅播窗口
+                        mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexMixer.getSinkPin(IDX_VIDEO_MAIN));
                         Log.d(TAG, "onFirstRemoteVideoDecoded " + Arrays.toString(data));
                         break;
                     }
 
                     case MediaManager.MediaUiHandler.LEAVE_CHANNEL: {
                         // temporarily only one remote stream supported, so reset uid here
-                        Log.e("sujia","LEAVE_CHANNEL");
                         mRTCClient.getRTCIO().stopReceiveRemoteData();
                         setRTCMainScreen(RTC_MAIN_SCREEN_CAMERA);
                         break;
                     }
 
-                    case MediaManager.MediaUiHandler.USER_OFFILINE: {
-                        Log.e("sujia","USER_OFFILINE");
-                        mRTCClient.getRTCIO().stopReceiveRemoteData();
+                    case MediaManager.MediaUiHandler.USER_OFFLINE: {
+                        //辅播断开后，设置主播画面为大窗口
                         setRTCMainScreen(RTC_MAIN_SCREEN_CAMERA);
                         break;
                     }
@@ -1490,7 +1494,28 @@ public class KSYAgoraStreamer {
         mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
         mImgTexMixer.setTargetSize(mTargetWidth, mTargetHeight);
 
-        mRTCImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
+        //转换成agora支持的编码分辨率
+        switch(mTargetWidth) {
+            case 360:
+                mRTCImgTexScaleFilter.setTargetSize(360, 640);
+                mMediaManager.setVideoProfile(IRtcEngineEventHandler.VideoProfile.VIDEO_PROFILE_360P);
+                break;
+            case 480:
+                mRTCImgTexScaleFilter.setTargetSize(480, 848);
+                mMediaManager.setVideoProfile(IRtcEngineEventHandler.VideoProfile.VIDEO_PROFILE_480P_8);
+                break;
+            case 720:
+                mRTCImgTexScaleFilter.setTargetSize(720, 1280);
+                mMediaManager.setVideoProfile(IRtcEngineEventHandler.VideoProfile.VIDEO_PROFILE_720P);
+                break;
+
+            default:
+                mRTCImgTexScaleFilter.setTargetSize(360, 640);
+                mMediaManager.setVideoProfile(IRtcEngineEventHandler.VideoProfile.VIDEO_PROFILE_360P);
+                break;
+
+        }
+
         setAudioParams();
     }
 
@@ -1600,7 +1625,6 @@ public class KSYAgoraStreamer {
         //leave rtc
         mRTCClient.getRTCIO().stopReceiveRemoteData();
         setRTCMainScreen(RTC_MAIN_SCREEN_CAMERA);
-        Log.e("sujia","leave channel");
         mRTCClient.leaveChannel();
 
         //disconnect rtc audio
@@ -2021,22 +2045,24 @@ public class KSYAgoraStreamer {
      */
     public void setEnableAudioPreview(boolean enable) {
         mIsAudioPreviewing = enable;
-//        if (enable) {
-//            setAudioParams();
-//            mAudioCapture.start();
-//            //禁止播放远端用户的音频流
-//            mMediaManager.getRtcEngine().muteAllRemoteAudioStreams(true);
-//            mAudioPreview.start();
-//            mAudioPlayerCapture.setMute(true);
-//        } else {
-//            //允许播放远端用户的音频流
-//            mMediaManager.getRtcEngine().muteAllRemoteAudioStreams(false);
-//            if (!mIsRecording) {
-//                mAudioCapture.stop();
-//            }
-//            mAudioPreview.stop();
-//            mAudioPlayerCapture.setMute(false);
-//        }
+        if (enable) {
+            if (mIsCalling) {
+                mMediaManager.getRtcEngine().setEnableSpeakerphone(false);
+            } else {
+                setAudioParams();
+                mAudioCapture.start();
+            }
+            mAudioPreview.start();
+            mAudioPlayerCapture.setMute(true);
+        } else {
+            if (mIsCalling) {
+                mMediaManager.getRtcEngine().setEnableSpeakerphone(true);
+            } else if (!mIsRecording && !mIsFileRecording) {
+                mAudioCapture.stop();
+            }
+            mAudioPreview.stop();
+            mAudioPlayerCapture.setMute(false);
+        }
     }
 
     /**
@@ -2178,6 +2204,7 @@ public class KSYAgoraStreamer {
         mWaterMarkCapture.release();
         mAudioPlayerCapture.release();
         mGLRender.release();
+        unregisterHeadsetPlugReceiver();
     }
 
     /**
@@ -2229,4 +2256,70 @@ public class KSYAgoraStreamer {
         public void onReleased() {
         }
     };
+
+    private void registerHeadsetPlugReceiver() {
+        mMusicIntentReceiver = new MusicIntentReceiver();
+
+        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        filter.addAction(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED);
+        filter.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
+        mContext.registerReceiver(mMusicIntentReceiver, filter);
+    }
+
+    private void unregisterHeadsetPlugReceiver() {
+        if (mMusicIntentReceiver != null) {
+            mContext.unregisterReceiver(mMusicIntentReceiver);
+        }
+    }
+
+    private class MusicIntentReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            boolean headeSetConnected = false;
+
+            String action = intent.getAction();
+            int state = BluetoothHeadset.STATE_DISCONNECTED;
+
+            if (action.equals(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)) {
+                state = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
+                        BluetoothHeadset.STATE_DISCONNECTED);
+                if (state == BluetoothHeadset.STATE_CONNECTED) {
+                    headeSetConnected = true;
+                }
+                else if (state == BluetoothHeadset.STATE_DISCONNECTED) {
+                    headeSetConnected = false;
+                }
+            }
+            else if (action.equals(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED))// audio
+            {
+                state = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
+                        BluetoothHeadset.STATE_AUDIO_DISCONNECTED);
+                if (state == BluetoothHeadset.STATE_AUDIO_CONNECTED) {
+                    headeSetConnected = true;
+                }
+                else if (state == BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
+                    headeSetConnected = false;
+                }
+            } else if (action.equals(Intent.ACTION_HEADSET_PLUG)) {
+                state = intent.getIntExtra("state", -1);
+
+                switch (state) {
+                    case 0:
+                        Log.d(TAG, "Headset is unplugged");
+                        headeSetConnected = false;
+                        break;
+                    case 1:
+                        Log.d(TAG, "Headset is plugged");
+                        headeSetConnected = true;
+                        break;
+                    default:
+                        Log.d(TAG, "I have no idea what the headset state is");
+                }
+            }
+
+            mHeadSetConnected = headeSetConnected;
+        }
+
+    }
 }

@@ -57,13 +57,6 @@
                 android:text="480P" />
 
             <RadioButton
-                android:id="@+id/radiobutton3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="false"
-                android:text="540P" />
-
-            <RadioButton
                 android:id="@+id/radiobutton4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
