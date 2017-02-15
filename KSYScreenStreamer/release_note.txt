@@ -10,3 +10,8 @@
 (录屏悬浮窗口只能用TextureView)
 4.在Demo中添加在悬浮窗口上动态打开/关闭Camera的示例代码onOpenCamera
 5.解决断网后，自动切换到推流界面的问题
+
+2017-02-15  1.0.2版
+1. 增加AudioInputBase，用于输出第三方音频
+2. 增加录屏推流横竖屏动态切换
+3. 通过jcenter依赖推流融合库2.2.3版本(需要在build.gradle中添加jcenter依赖)
