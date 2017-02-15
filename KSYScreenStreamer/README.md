@@ -35,6 +35,7 @@ KSYScreenStreamer是libscreenstreamer基于金山云推流SDK提供的kit类，�
 * KSYScreenStreamer.OnErrorListener:推流错误回调，增加KSY_STREAMER_SCREEN_RECORD_XXX相关错误回调
 * KSYCameraPreview.OnInfoListener:悬浮窗口打开时，摄像头状态回调
 * KSYCameraPreview.OnErrorListener:悬浮窗口打开时，摄像头错误回调
+* AudioInputBase:用于mixer其它音频文件到推流端
 * kit 类关键接口介绍：
 <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYStreamer_Android/images/screen_interface.png" width = "636" height = "426" alt="图片名称" align=center />
 
@@ -47,6 +48,7 @@ KSYScreenStreamer是libscreenstreamer基于金山云推流SDK提供的kit类，�
     * ×kit类中未集成触摸对焦、变焦、闪光灯、测光等功能
 * ×kit类中未集成背景音乐功能
 * ×kit类中未集成纯音频推流
+* ✓接受第三方音频输入
 
 ## 5. 运行环境
 * 最低支持版本为Android 5.0 (API level 21)
