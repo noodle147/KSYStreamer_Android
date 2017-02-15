@@ -29,9 +29,15 @@ import com.ksyun.media.streamer.util.gles.GLRender;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.view.WindowManager;
+
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 /**
  * kit for Screen Record Streamer
@@ -39,13 +45,20 @@ import android.view.WindowManager;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class KSYScreenStreamer {
     private static final String TAG = "KSYScreenStreamer";
-    public static final String LIBSCREENSTREAMER_VERSION_VALUE = "1.0.1.1";
+    public static final String LIBSCREENSTREAMER_VERSION_VALUE = "1.0.2.3";
     public static final int KSY_STREAMER_SCREEN_RECORD_UNSUPPORTED = -2007;
     public static final int KSY_STREAMER_SCREEN_RECORD_PERMISSION_DENIED = -2008;
 
     private Context mContext;
 
+    protected int mIdxCamera = 0;
+    protected int mIdxWmLogo = 1;
+    protected int mIdxWmTime = 2;
+    protected int mIdxAudioMic = 0;
+
     private String mUri;  //push url
+    private int mOffScreenWidth;
+    private int mOffScreenHeight;
     private int mTargetResolution = StreamerConstants.DEFAULT_TARGET_RESOLUTION;
     private int mTargetWidth = 0;
     private int mTargetHeight = 0;
@@ -68,6 +81,8 @@ public class KSYScreenStreamer {
     private boolean mIsCaptureStarted = false;
     private boolean mIsLandSpace = false;
     private boolean mEnableDebugLog = false;
+    private boolean mAutoRestart = false;
+    private int mAutoRestartInterval = 3000;
 
     private KSYScreenStreamer.OnInfoListener mOnInfoListener;
     private KSYScreenStreamer.OnErrorListener mOnErrorListener;
@@ -89,11 +104,15 @@ public class KSYScreenStreamer {
     private FilePublisher mFilePublisher;
     private PublisherMgt mPublisherMgt;
 
+    private Handler mMainHandler;
+    private Map<Integer, AudioInputBase> mAudioMixerInputs;  //其它音频输入
+
     public KSYScreenStreamer(Context context) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null!");
         }
         mContext = context.getApplicationContext();
+        mMainHandler = new Handler(Looper.getMainLooper());
         initModules();
     }
 
@@ -110,9 +129,9 @@ public class KSYScreenStreamer {
 
         //connect video data
         mScreenCapture.mImgTexSrcPin.connect(mImgTexScaleFilter.getSinkPin());
-        mImgTexScaleFilter.getSrcPin().connect(mImgTexMixer.getSinkPin(0));
-        mWaterMarkCapture.mLogoTexSrcPin.connect(mImgTexMixer.getSinkPin(1));
-        mWaterMarkCapture.mTimeTexSrcPin.connect(mImgTexMixer.getSinkPin(2));
+        mImgTexScaleFilter.getSrcPin().connect(mImgTexMixer.getSinkPin(mIdxCamera));
+        mWaterMarkCapture.mLogoTexSrcPin.connect(mImgTexMixer.getSinkPin(mIdxWmLogo));
+        mWaterMarkCapture.mTimeTexSrcPin.connect(mImgTexMixer.getSinkPin(mIdxWmTime));
 
         // Audio
         mAudioCapture = new AudioCapture();
@@ -130,6 +149,16 @@ public class KSYScreenStreamer {
         mImgTexMixer.getSrcPin().connect(mVideoEncoderMgt.getImgTexSinkPin());
         mAudioMixer.getSrcPin().connect(mAudioEncoderMgt.getSinkPin());
 
+        // publisher
+        mRtmpPublisher = new RtmpPublisher();
+        mFilePublisher = new FilePublisher();
+
+        mPublisherMgt = new PublisherMgt();
+        mAudioEncoderMgt.getSrcPin().connect(mPublisherMgt.getAudioSink());
+        mVideoEncoderMgt.getSrcPin().connect(mPublisherMgt.getVideoSink());
+        mPublisherMgt.addPublisher(mFilePublisher);
+        mPublisherMgt.addPublisher(mRtmpPublisher);
+
         WindowManager wm = (WindowManager) mContext
                 .getSystemService(Context.WINDOW_SERVICE);
         int screenWidth = wm.getDefaultDisplay().getWidth();
@@ -141,17 +170,7 @@ public class KSYScreenStreamer {
         }
         setOffscreenPreview(screenWidth, screenHeight);
 
-        // publisher
-        mRtmpPublisher = new RtmpPublisher();
-        mFilePublisher = new FilePublisher();
-
-        mPublisherMgt = new PublisherMgt();
-        mAudioEncoderMgt.getSrcPin().connect(mPublisherMgt.getAudioSink());
-        mVideoEncoderMgt.getSrcPin().connect(mPublisherMgt.getVideoSink());
-        mPublisherMgt.addPublisher(mFilePublisher);
-        mPublisherMgt.addPublisher(mRtmpPublisher);
-
-        // stats
+        // stat
         StatsLogReport.getInstance().initLogReport(mContext);
 
         // set listeners
@@ -176,6 +195,7 @@ public class KSYScreenStreamer {
                 if (mOnErrorListener != null) {
                     mOnErrorListener.onError(what, 0, 0);
                 }
+                //do not need to auto restart
             }
         });
 
@@ -203,6 +223,7 @@ public class KSYScreenStreamer {
                 if (mOnErrorListener != null) {
                     mOnErrorListener.onError(what, 0, 0);
                 }
+                //do not need to auto restart
             }
         });
 
@@ -233,6 +254,7 @@ public class KSYScreenStreamer {
                                 StreamerConstants.KSY_STREAMER_AUDIO_ENCODER_ERROR_UNKNOWN;
                         break;
                 }
+                //do not need to auto restart
                 if (mOnErrorListener != null) {
                     mOnErrorListener.onError(what, 0, 0);
                 }
@@ -249,7 +271,10 @@ public class KSYScreenStreamer {
                         if (!mAudioEncoderMgt.getEncoder().isEncoding()) {
                             mAudioEncoderMgt.getEncoder().start();
                         }
-                        mAudioEncoderMgt.getEncoder().sendExtraData();
+                        ByteBuffer audioExtra = mFilePublisher.getAudioExtra();
+                        if (audioExtra != null) {
+                            mRtmpPublisher.setAudioExtra(audioExtra);
+                        }
                         if (mOnInfoListener != null) {
                             mOnInfoListener.onInfo(
                                     StreamerConstants.KSY_STREAMER_OPEN_STREAM_SUCCESS, 0, 0);
@@ -260,7 +285,10 @@ public class KSYScreenStreamer {
                         if (!mVideoEncoderMgt.getEncoder().isEncoding()) {
                             mVideoEncoderMgt.start();
                         }
-                        mVideoEncoderMgt.getEncoder().sendExtraData();
+                        ByteBuffer videoExtra = mFilePublisher.getVideoExtra();
+                        if (videoExtra != null) {
+                            mRtmpPublisher.setVideoExtra(videoExtra);
+                        }
                         mVideoEncoderMgt.getEncoder().forceKeyFrame();
                         break;
                     case RtmpPublisher.INFO_PACKET_SEND_SLOW:
@@ -326,6 +354,8 @@ public class KSYScreenStreamer {
                             break;
                     }
                     mOnErrorListener.onError(status, (int) msg, 0);
+                    //do need to auto restart
+                    autoRestart();
                 }
             }
         });
@@ -337,8 +367,13 @@ public class KSYScreenStreamer {
                 switch (type) {
                     case FilePublisher.INFO_OPENED:
                         //start audio encoder first
-                        mAudioEncoderMgt.getEncoder().start();
-                        mAudioEncoderMgt.getEncoder().sendExtraData();
+                        if (!mAudioEncoderMgt.getEncoder().isEncoding()) {
+                            mAudioEncoderMgt.getEncoder().start();
+                        }
+                        ByteBuffer audioExtra = mRtmpPublisher.getAudioExtra();
+                        if (audioExtra != null) {
+                            mFilePublisher.setAudioExtra(audioExtra);
+                        }
                         if (mOnInfoListener != null) {
                             mOnInfoListener.onInfo(
                                     StreamerConstants.KSY_STREAMER_OPEN_STREAM_SUCCESS, 0, 0);
@@ -347,8 +382,13 @@ public class KSYScreenStreamer {
                     case FilePublisher.INFO_AUDIO_HEADER_GOT:
 
                         // start video encoder after audio header got
-                        mVideoEncoderMgt.start();
-                        mVideoEncoderMgt.getEncoder().sendExtraData();
+                        if (!mVideoEncoderMgt.getEncoder().isEncoding()) {
+                            mVideoEncoderMgt.start();
+                        }
+                        ByteBuffer videoExtra = mRtmpPublisher.getVideoExtra();
+                        if (videoExtra != null) {
+                            mFilePublisher.setVideoExtra(videoExtra);
+                        }
                         mVideoEncoderMgt.getEncoder().forceKeyFrame();
 
                         break;
@@ -382,6 +422,7 @@ public class KSYScreenStreamer {
                     }
                     mOnErrorListener.onError(status, (int) msg, 0);
                 }
+                //do not need to restart
             }
         });
     }
@@ -411,6 +452,15 @@ public class KSYScreenStreamer {
      */
     public AudioFilterMgt getAudioFilterMgt() {
         return mAudioFilterMgt;
+    }
+
+    /**
+     * Get {@link AudioMixer} instance.
+     *
+     * @return AudioMixer instance.
+     */
+    public AudioMixer getAudioMixer() {
+        return mAudioMixer;
     }
 
     /**
@@ -451,6 +501,8 @@ public class KSYScreenStreamer {
         if (width <= 0 || height <= 0) {
             throw new IllegalArgumentException("Invalid offscreen resolution");
         }
+        mOffScreenWidth = width;
+        mOffScreenHeight = height;
         mScreenGLRender.init(width, height);
     }
 
@@ -571,6 +623,12 @@ public class KSYScreenStreamer {
      * @param isLandspace false PORTRAIT true LANDSPACE
      */
     public void setIsLandspace(boolean isLandspace) {
+        boolean isLastLandscape = mIsLandSpace;
+        if (isLastLandscape != isLandspace) {
+            setOffscreenPreview(mOffScreenHeight, mOffScreenWidth);
+            setTargetResolution(mTargetHeight, mTargetWidth);
+            mWaterMarkCapture.setTargetSize(mTargetWidth, mTargetHeight);
+        }
         mIsLandSpace = isLandspace;
     }
 
@@ -592,8 +650,14 @@ public class KSYScreenStreamer {
         if (width < 0 || height < 0 || (width == 0 && height == 0)) {
             throw new IllegalArgumentException("Invalid resolution");
         }
+        Log.e(TAG, "setTargetResolution: " + width + "*" + height);
         mTargetWidth = width;
         mTargetHeight = height;
+        calResolution();
+        Log.e(TAG, "setTargetResolution: " + mTargetWidth + "*" + mTargetHeight);
+        mImgTexScaleFilter.setTargetSize(mTargetWidth, mTargetHeight);
+        mImgTexMixer.setTargetSize(mTargetWidth, mTargetHeight);
+        mVideoEncoderMgt.setImgBufTargetSize(mTargetWidth, mTargetHeight);
     }
 
     /**
@@ -617,6 +681,9 @@ public class KSYScreenStreamer {
         mTargetResolution = idx;
         mTargetWidth = 0;
         mTargetHeight = 0;
+        calResolution();
+        mImgTexMixer.setTargetSize(mTargetWidth, mTargetHeight);
+        mVideoEncoderMgt.setImgBufTargetSize(mTargetWidth, mTargetHeight);
     }
 
     /**
@@ -823,6 +890,7 @@ public class KSYScreenStreamer {
      *              default value {@link VideoEncodeFormat#ENCODE_SCENE_SHOWSELF}
      * @see VideoEncodeFormat#ENCODE_SCENE_DEFAULT
      * @see VideoEncodeFormat#ENCODE_SCENE_SHOWSELF
+     * @see VideoEncodeFormat#ENCODE_SCENE_GAME
      */
     public void setVideoEncodeScene(int scene) {
         mEncodeScene = scene;
@@ -1249,7 +1317,7 @@ public class KSYScreenStreamer {
      * @param volume volume in 0~1.0f.
      */
     public void setVoiceVolume(float volume) {
-        mAudioMixer.setInputVolume(0, volume);
+        mAudioMixer.setInputVolume(mIdxAudioMic, volume);
     }
 
     /**
@@ -1258,7 +1326,7 @@ public class KSYScreenStreamer {
      * @return volume in 0~1.0f.
      */
     public float getVoiceVolume() {
-        return mAudioMixer.getInputVolume(0);
+        return mAudioMixer.getInputVolume(mIdxAudioMic);
     }
 
     /**
@@ -1278,6 +1346,26 @@ public class KSYScreenStreamer {
      */
     public boolean isAudioMuted() {
         return mAudioMixer.getMute();
+    }
+
+    /**
+     * auto restart streamer when the following error occurred
+     *
+     * @param enable   default false
+     * @param interval the restart interval(ms) default 3000
+     * @see StreamerConstants#KSY_STREAMER_ERROR_CONNECT_BREAKED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_DNS_PARSE_FAILED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_CONNECT_FAILED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_PUBLISH_FAILED
+     * @see StreamerConstants#KSY_STREAMER_ERROR_AV_ASYNC
+     */
+    public void setEnableAutoRestart(boolean enable, int interval) {
+        mAutoRestart = enable;
+        mAutoRestartInterval = interval;
+    }
+
+    public boolean getEnableAutoRestart() {
+        return mAutoRestart;
     }
 
     /**
@@ -1320,7 +1408,7 @@ public class KSYScreenStreamer {
         }
         alpha = Math.max(0.0f, alpha);
         alpha = Math.min(alpha, 1.0f);
-        mImgTexMixer.setRenderRect(1, x, y, w, h, alpha);
+        mImgTexMixer.setRenderRect(mIdxWmLogo, x, y, w, h, alpha);
         mVideoEncoderMgt.getImgBufMixer().setRenderRect(1, x, y, w, h, alpha);
         mWaterMarkCapture.showLogo(mContext, path, w, h);
     }
@@ -1349,7 +1437,7 @@ public class KSYScreenStreamer {
         }
         alpha = Math.max(0.0f, alpha);
         alpha = Math.min(alpha, 1.0f);
-        mImgTexMixer.setRenderRect(2, x, y, w, 0, alpha);
+        mImgTexMixer.setRenderRect(mIdxWmTime, x, y, w, 0, alpha);
         mVideoEncoderMgt.getImgBufMixer().setRenderRect(2, x, y, w, 0, alpha);
         mWaterMarkCapture.showTime(color, "yyyy-MM-dd HH:mm:ss", w, 0);
     }
@@ -1377,6 +1465,90 @@ public class KSYScreenStreamer {
      */
     public String getLibScreenStreamerVersion() {
         return LIBSCREENSTREAMER_VERSION_VALUE;
+    }
+
+    private void autoRestart() {
+        if (mAutoRestart) {
+            if (mMainHandler != null) {
+                stopStream();
+                mMainHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        startStream();
+                    }
+                }, mAutoRestartInterval);
+            }
+        }
+    }
+
+    /**
+     * 输入需要mixer的音频
+     * 当前支持最多mixer 7个除mic以外的音频
+     * 既可以调用该接口7次来输入需要mixer的不同的音频
+     *
+     * @param input 需要mixer的音频
+     * @return true 输入成功  false 输入失败
+     */
+    public boolean connectAudioInput(AudioInputBase input) {
+        if (mAudioMixerInputs == null) {
+            mAudioMixerInputs = new ArrayMap<>();
+        }
+
+        if (mAudioMixerInputs.size() >= (mAudioMixer.getSinkPinNum() - 1)) {
+            return false;
+        }
+
+        if (!mAudioMixerInputs.containsValue(input)) {
+            if (mAudioMixer != null) {
+                int index = mAudioMixer.getEmptySinkPin();
+                if (index != -1) {
+                    input.getSrcPin().connect(mAudioMixer.getSinkPin(index));
+                    mAudioMixerInputs.put(index, input);
+                    return true;
+                }
+            }
+        } else {
+            if (mAudioMixer != null) {
+                int index = findIndex(input);
+                if (index != -1) {
+                    input.getSrcPin().connect(mAudioMixer.getSinkPin(index));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 停止mixer
+     *
+     * @param inputBase 需要mixer的音频
+     * @param recursive true 释放该音频输入，下次connect无效，需要重新创建
+     */
+    public void disconnectAudioInput(AudioInputBase inputBase, boolean recursive) {
+        if (mAudioMixerInputs != null && mAudioMixerInputs.containsValue(inputBase)) {
+            if (mAudioMixer != null) {
+                int index = findIndex(inputBase);
+                if (index != -1) {
+                    inputBase.getSrcPin().disconnect(mAudioMixer.getSinkPin(index),
+                            recursive);
+                    if (recursive) {
+                        mAudioMixerInputs.remove(inputBase);
+                    }
+                }
+            }
+        }
+    }
+
+    private int findIndex(AudioInputBase inputBase) {
+        int index = -1;
+        for (int i = 0; i < mAudioMixerInputs.size(); i++) {
+            if (mAudioMixerInputs.get(i) == inputBase) {
+                index = i;
+                break;
+            }
+        }
+        return index;
     }
 
     /**

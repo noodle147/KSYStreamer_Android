@@ -118,7 +118,7 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
         mFillFrameRunnable = new Runnable() {
             @Override
             public void run() {
-                if(mState.get() == SCREEN_STATE_CAPTUREING) {
+                if (mState.get() == SCREEN_STATE_CAPTUREING) {
                     mGLRender.requestRender();
                     mMainHandler.postDelayed(mFillFrameRunnable, 100);
                 }
@@ -186,7 +186,7 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     public void release() {
         // stop fill frame
-        if(mMainHandler != null) {
+        if (mMainHandler != null) {
             mMainHandler.removeCallbacks(mFillFrameRunnable);
         }
 
@@ -210,6 +210,7 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
 
     /**
      * screen status changed listener
+     *
      * @param listener
      */
     public void setOnScreenCaptureListener(OnScreenCaptureListener listener) {
@@ -218,11 +219,11 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
 
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        if(mState.get() != SCREEN_STATE_CAPTUREING) {
+        if (mState.get() != SCREEN_STATE_CAPTUREING) {
             return;
         }
         mGLRender.requestRender();
-        if(mMainHandler != null) {
+        if (mMainHandler != null) {
             mMainHandler.removeCallbacks(mFillFrameRunnable);
             mMainHandler.postDelayed(mFillFrameRunnable, 100);
         }
@@ -269,13 +270,24 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
 
         @Override
         public void onSizeChanged(int width, int height) {
-            Log.d(TAG, "onSizeChanged");
+            Log.d(TAG, "onSizeChanged : " + width + "*" + height);
             mWidth = width;
             mHeight = height;
+
+            mTexInited = false;
+
+            if (mVirtualDisplay != null) {
+                mVirtualDisplay.release();
+                mVirtualDisplay = null;
+            }
 
             mTextureId = GlUtil.createOESTextureObject();
             if (mSurfaceTexture != null) {
                 mSurfaceTexture.release();
+            }
+
+            if (mSurface != null) {
+                mSurface.release();
             }
             mSurfaceTexture = new SurfaceTexture(mTextureId);
             mSurfaceTexture.setDefaultBufferSize(mWidth, mHeight);
@@ -283,7 +295,7 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
 
             mSurfaceTexture.setOnFrameAvailableListener(ScreenCapture.this);
 
-            if (mState.get() == SCREEN_STATE_INITIALIZED && mVirtualDisplay == null) {
+            if (mState.get() >= SCREEN_STATE_INITIALIZED && mVirtualDisplay == null) {
                 mScreenSetupHandler.removeMessages(MSG_SCREEN_START);
                 mScreenSetupHandler.sendEmptyMessage(MSG_SCREEN_START);
             }
@@ -427,7 +439,7 @@ public class ScreenCapture implements SurfaceTexture.OnFrameAvailableListener {
             Log.d(TAG, "doScreenSetup");
         }
 
-        if(mMediaProjectManager == null) {
+        if (mMediaProjectManager == null) {
             mMediaProjectManager = (MediaProjectionManager) mContext.getSystemService(
                     Context.MEDIA_PROJECTION_SERVICE);
         }

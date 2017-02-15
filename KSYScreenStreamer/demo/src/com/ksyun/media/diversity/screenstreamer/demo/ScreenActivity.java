@@ -1,10 +1,14 @@
 package com.ksyun.media.diversity.screenstreamer.demo;
 
+import com.ksyun.media.diversity.screenstreamer.kit.AudioInputBase;
 import com.ksyun.media.diversity.screenstreamer.kit.KSYCameraPreview;
 import com.ksyun.media.diversity.screenstreamer.kit.KSYScreenStreamer;
+import com.ksyun.media.player.IMediaPlayer;
+import com.ksyun.media.player.KSYMediaPlayer;
 import com.ksyun.media.streamer.filter.audio.AudioFilterBase;
 import com.ksyun.media.streamer.filter.audio.AudioReverbFilter;
 import com.ksyun.media.streamer.filter.imgtex.ImgBeautyProFilter;
+import com.ksyun.media.streamer.filter.imgtex.ImgBeautyToneCurveFilter;
 import com.ksyun.media.streamer.filter.imgtex.ImgFilterBase;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexFilter;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterBase;
@@ -23,8 +27,8 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.net.Uri;
-import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -40,6 +44,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -59,6 +64,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -106,9 +112,9 @@ public class ScreenActivity extends Activity implements
     public final static String VIDEO_BITRATE = "video_bitrate";
     public final static String AUDIO_BITRATE = "audio_bitrate";
     public final static String VIDEO_RESOLUTION = "video_resolution";
-    public final static String LANDSCAPE = "landscape";
+    public final static String ORIENTATION = "orientation";
     public final static String ENCDODE_METHOD = "encode_method";
-    public final static String START_ATUO = "start_auto";
+    public final static String START_AUTO = "start_auto";
     public static final String SHOW_DEBUGINFO = "show_debuginfo";
     public final static String ENCODE_METHOD = "encode_method";
     public final static String ENCODE_SCENE = "encode_scene";
@@ -159,9 +165,13 @@ public class ScreenActivity extends Activity implements
     private boolean mSWEncoderUnsupported;
 
     //user params
-    private boolean mIsLandspace;
+    private boolean mIsLandscape;
     private boolean mAutoStart;
     private boolean mPrintDebugInfo = false;
+
+    private int mLastRotation;
+    private OrientationEventListener mOrientationEventListener;
+    private int mPresetOrientation;
 
     //preview window just demo
     private FloatView mFloatLayout;   //悬浮窗口的layout, 可以是xml,也可以在代码中创建
@@ -178,15 +188,11 @@ public class ScreenActivity extends Activity implements
 
     private int mPreviewFps;   //摄像头预览的采集帧率
     private int mPreviewResolution;  //摄像头预览的分辨率
-    //做悬浮窗口rotate的监控(1s Ticker),使悬浮窗口的rotate和top acitvity的一直
-    //暂时没有找到动态得到top acitvity 的横竖屏变更的接口
-    private Timer mPreviewRotateTimer;
-    private int mLastRotate; //屏幕旋转角度
 
     public static void startActivity(Context context, int fromType,
                                      String rtmpUrl, int frameRate,
                                      int videoBitrate, int audioBitrate,
-                                     int videoResolution, boolean isLandscape,
+                                     int videoResolution, int orientation,
                                      int encodeType, int encodeMethod,
                                      int encodeScene, int encodeProfile,
                                      boolean startAuto, boolean showDebugInfo) {
@@ -198,12 +204,12 @@ public class ScreenActivity extends Activity implements
         intent.putExtra(VIDEO_BITRATE, videoBitrate);
         intent.putExtra(AUDIO_BITRATE, audioBitrate);
         intent.putExtra(VIDEO_RESOLUTION, videoResolution);
-        intent.putExtra(LANDSCAPE, isLandscape);
+        intent.putExtra(ORIENTATION, orientation);
         intent.putExtra(ENCODE_TYPE, encodeType);
         intent.putExtra(ENCODE_METHOD, encodeMethod);
         intent.putExtra(ENCODE_SCENE, encodeScene);
         intent.putExtra(ENCODE_PROFILE, encodeProfile);
-        intent.putExtra(START_ATUO, startAuto);
+        intent.putExtra(START_AUTO, startAuto);
         intent.putExtra(SHOW_DEBUGINFO, showDebugInfo);
         context.startActivity(intent);
     }
@@ -315,21 +321,49 @@ public class ScreenActivity extends Activity implements
             mScreenStreamer.setVideoEncodeProfile(encodeProfile);
 
             //推流的横竖屏设置,默认竖屏
-            mIsLandspace = bundle.getBoolean(LANDSCAPE, false);
-            mScreenStreamer.setIsLandspace(mIsLandspace);
-
-            //just for demo not necessary
-            if (mIsLandspace) {
+            int orientation = bundle.getInt(ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            mPresetOrientation = orientation;
+            if (orientation == ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
+            } else if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                mIsLandscape = true;
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                mScreenStreamer.setIsLandspace(mIsLandscape);
             } else {
+                mIsLandscape = false;
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                mScreenStreamer.setIsLandspace(mIsLandscape);
             }
+            mLastRotation = getDisplayRotation();
 
-            mAutoStart = bundle.getBoolean(START_ATUO, false);
+            mOrientationEventListener = new OrientationEventListener(this,
+                    SensorManager.SENSOR_DELAY_NORMAL) {
+                @Override
+                public void onOrientationChanged(int orientation) {
+                    int rotation = getDisplayRotation();
+                    if (rotation != mLastRotation) {
+                        Log.d(TAG, "Rotation changed " + mLastRotation + "->" + rotation);
+                        mIsLandscape = (rotation % 180) != 0;
+                        if (mPresetOrientation == ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR) {
+                            mScreenStreamer.setIsLandspace(mIsLandscape);
+                            if (mWaterMarkCheckBox.isChecked()) {
+                                hideWaterMark();
+                                showWaterMark();
+                            }
+                        }
+
+                        onSwitchRotate();
+                        mLastRotation = rotation;
+                    }
+                }
+            };
+
+            mAutoStart = bundle.getBoolean(START_AUTO, false);
             mPrintDebugInfo = bundle.getBoolean(SHOW_DEBUGINFO, false);
         }
 
         //default false may change duraing the streaming
+        mScreenStreamer.setEnableAutoRestart(true, 3000);
         mScreenStreamer.setMuteAudio(mMuteCheckBox.isChecked());
         mScreenStreamer.setOnInfoListener(mOnInfoListener);
         mScreenStreamer.setOnErrorListener(mOnErrorListener);
@@ -367,7 +401,26 @@ public class ScreenActivity extends Activity implements
                     groupFilter.add(new DemoFilter3(mCameraPreviewKit.getGLRender()));
                     groupFilter.add(new DemoFilter4(mCameraPreviewKit.getGLRender()));
                     mCameraPreviewKit.getImgTexFilterMgt().setFilter(groupFilter);
+                } else if (position == 9) {
+                    ImgBeautyToneCurveFilter acvFilter = new ImgBeautyToneCurveFilter(mCameraPreviewKit.getGLRender());
+                    acvFilter.setFromCurveFileInputStream(
+                            ScreenActivity.this.getResources().openRawResource(R.raw.tone_cuver_sample));
+
+                    mCameraPreviewKit.getImgTexFilterMgt().setFilter(acvFilter);
+                } else if (position == 10) {
+                    ImgBeautyToneCurveFilter acvFilter = new ImgBeautyToneCurveFilter(mCameraPreviewKit.getGLRender());
+                    acvFilter.setFromCurveFileInputStream(
+                            ScreenActivity.this.getResources().openRawResource(R.raw.fugu));
+
+                    mCameraPreviewKit.getImgTexFilterMgt().setFilter(acvFilter);
+                } else if (position == 11) {
+                    ImgBeautyToneCurveFilter acvFilter = new ImgBeautyToneCurveFilter(mCameraPreviewKit.getGLRender());
+                    acvFilter.setFromCurveFileInputStream(
+                            ScreenActivity.this.getResources().openRawResource(R.raw.jiaopian));
+
+                    mCameraPreviewKit.getImgTexFilterMgt().setFilter(acvFilter);
                 }
+
                 List<ImgFilterBase> filters = mCameraPreviewKit.getImgTexFilterMgt().getFilter();
                 if (filters != null && !filters.isEmpty()) {
                     final ImgFilterBase filter = filters.get(0);
@@ -435,6 +488,10 @@ public class ScreenActivity extends Activity implements
     @Override
     public void onResume() {
         super.onResume();
+        if (mOrientationEventListener != null &&
+                mOrientationEventListener.canDetectOrientation()) {
+            mOrientationEventListener.enable();
+        }
         requestPermission();
     }
 
@@ -455,8 +512,9 @@ public class ScreenActivity extends Activity implements
             mTimer.cancel();
         }
         mScreenStreamer.setOnLogEventListener(null);
-        if (mPreviewRotateTimer != null) {
-            mPreviewRotateTimer.cancel();
+
+        if (mOrientationEventListener != null) {
+            mOrientationEventListener.disable();
         }
 
         if (mPreviewWindowShow) {
@@ -467,6 +525,7 @@ public class ScreenActivity extends Activity implements
             mCameraPreviewKit.release();
         }
 
+        releasePlay();
         mScreenStreamer.release();
     }
 
@@ -480,6 +539,21 @@ public class ScreenActivity extends Activity implements
                 break;
         }
         return true;
+    }
+
+    private int getDisplayRotation() {
+        int rotation = getWindowManager().getDefaultDisplay().getRotation();
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                return 0;
+            case Surface.ROTATION_90:
+                return 90;
+            case Surface.ROTATION_180:
+                return 180;
+            case Surface.ROTATION_270:
+                return 270;
+        }
+        return 0;
     }
 
     /**
@@ -579,7 +653,7 @@ public class ScreenActivity extends Activity implements
      * do not effect on camera preview window
      */
     private void showWaterMark() {
-        if (!mIsLandspace) {
+        if (!mIsLandscape) {
             mScreenStreamer.showWaterMarkLogo(mLogoPath, 0.08f, 0.04f, 0.20f, 0, 0.8f);
             mScreenStreamer.showWaterMarkTime(0.03f, 0.01f, 0.35f, Color.WHITE, 1.0f);
         } else {
@@ -725,17 +799,21 @@ public class ScreenActivity extends Activity implements
                     switch (what) {
                         case StreamerConstants.KSY_STREAMER_AUDIO_RECORDER_ERROR_START_FAILED:
                         case StreamerConstants.KSY_STREAMER_AUDIO_RECORDER_ERROR_UNKNOWN:
+                            break;
                         case KSYScreenStreamer.KSY_STREAMER_SCREEN_RECORD_UNSUPPORTED:
                             mChronometer.stop();
                             mShootingText.setText(R.string.start_streaming);
                             mShootingText.postInvalidate();
                             mRecording = false;
                             break;
+                        case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_CLOSE_FAILED:
+                        case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_ERROR_UNKNOWN:
+                        case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_OPEN_FAILED:
+                        case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_WRITE_FAILED:
+                            break;
                         case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNSUPPORTED:
-                        case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNKNOWN:
+                        case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNKNOWN: {
                             handleEncodeError();
-                        default:
-                            //重连示例代码
                             stopStream();
                             mMainHandler.postDelayed(new Runnable() {
                                 @Override
@@ -743,6 +821,23 @@ public class ScreenActivity extends Activity implements
                                     startStream();
                                 }
                             }, 3000);
+                        }
+                        break;
+                        default:
+                            if (mScreenStreamer.getEnableAutoRestart()) {
+                                mShootingText.setText(R.string.start_streaming);
+                                mShootingText.postInvalidate();
+                                mRecording = false;
+                                stopChronometer();
+                            } else {
+                                stopStream();
+                                mMainHandler.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        startStream();
+                                    }
+                                }, 3000);
+                            }
                             break;
                     }
                 }
@@ -828,7 +923,7 @@ public class ScreenActivity extends Activity implements
     private void onOpenCamera() {
         if (mCameraPreview.getVisibility() == View.VISIBLE) {
             mCameraPreviewKit.stopCameraPreview();
-            mPreviewLayout = (LinearLayout.LayoutParams)mCameraPreview.getLayoutParams();
+            mPreviewLayout = (LinearLayout.LayoutParams) mCameraPreview.getLayoutParams();
             mCameraPreview.setVisibility(View.GONE);
             mFloatLayout.removeView(mCameraPreview);
         } else {
@@ -1104,44 +1199,23 @@ public class ScreenActivity extends Activity implements
      */
     private void onSwitchRotate() {
         if (mPreviewWindowShow) {
-            int rotate = mWindowManager.getDefaultDisplay().getRotation();
-            if (rotate != mLastRotate) {
-                if (rotate == Surface.ROTATION_0
-                        || rotate == Surface.ROTATION_180) {
-                    //设置摄像头旋转角度
-                    if (rotate == Surface.ROTATION_0) {
-                        mCameraPreviewKit.setRotateDegrees(0);
-                    } else {
-                        mCameraPreviewKit.setRotateDegrees(180);
-                    }
+            int rotation = getDisplayRotation();
+            Log.i(TAG, "onSwitchRotate:" + rotation);
+            mCameraPreviewKit.setRotateDegrees(rotation);
 
-                    int width = mCameraPreview.getHeight();
-                    int height = mCameraPreview.getWidth();
-                    LinearLayout.LayoutParams layoutParams =
-                            new LinearLayout.LayoutParams(width, height);
-                    layoutParams.gravity = Gravity.BOTTOM | Gravity.TOP
-                            | Gravity.LEFT | Gravity.RIGHT;
-                    //更新CameraPreview布局
-                    mFloatLayout.updateViewLayout(mCameraPreview, layoutParams);
+            boolean isLastLandscape = (mLastRotation % 180) != 0;
+            boolean isLandscape = (rotation % 180) != 0;
+            if (isLastLandscape != isLandscape) {
+                int width = mCameraPreview.getHeight();
+                int height = mCameraPreview.getWidth();
+                LinearLayout.LayoutParams layoutParams =
+                        new LinearLayout.LayoutParams(width, height);
+                layoutParams.gravity = Gravity.BOTTOM | Gravity.TOP
+                        | Gravity.LEFT | Gravity.RIGHT;
+                //更新CameraPreview布局
+                mFloatLayout.updateViewLayout(mCameraPreview, layoutParams);
 
-                } else if (rotate == Surface.ROTATION_90 ||
-                        rotate == Surface.ROTATION_270) {
-                    if (rotate == Surface.ROTATION_90) {
-                        mCameraPreviewKit.setRotateDegrees(90);
-                    } else {
-                        mCameraPreviewKit.setRotateDegrees(270);
-                    }
-                    int width = mCameraPreview.getHeight();
-                    int height = mCameraPreview.getWidth();
-                    LinearLayout.LayoutParams layoutParams =
-                            new LinearLayout.LayoutParams(width, height);
-                    layoutParams.gravity = Gravity.BOTTOM | Gravity.TOP
-                            | Gravity.LEFT | Gravity.RIGHT;
-                    mFloatLayout.updateViewLayout(mCameraPreview, layoutParams);
-                }
-                //横竖屏切换后，悬浮窗口回到初始位置，您可根据自己的自己的时机需求调整
                 updateViewPosition();
-                mLastRotate = rotate;
             }
         }
     }
@@ -1348,7 +1422,7 @@ public class ScreenActivity extends Activity implements
         }
 
         //设想摄像头旋转角度
-        mCameraPreviewKit.setRotateDegrees(mIsLandspace ? 90 : 0);
+        mCameraPreviewKit.setRotateDegrees(mLastRotation);
 
         //开始预览
         mCameraPreviewKit.startCameraPreview();
@@ -1401,8 +1475,10 @@ public class ScreenActivity extends Activity implements
             int screenHeight = mWindowManager.getDefaultDisplay().getHeight();
             int width;
             int height;
-            if ((mIsLandspace && screenWidth < screenHeight) ||
-                    (!mIsLandspace) && screenWidth > screenHeight) {
+
+            boolean isLandscape = (getDisplayRotation() % 180) != 0;
+            if ((isLandscape && screenWidth < screenHeight) ||
+                    (!isLandscape) && screenWidth > screenHeight) {
                 screenWidth = mWindowManager.getDefaultDisplay().getHeight();
                 screenHeight = mWindowManager.getDefaultDisplay().getWidth();
             }
@@ -1435,20 +1511,6 @@ public class ScreenActivity extends Activity implements
 
             mFloatLayout.addView(mCameraPreview, previewLayoutParams);
             mFloatLayout.setWmParams(mWmParams);
-            mLastRotate = mWindowManager.getDefaultDisplay().getRotation();
-
-            mPreviewRotateTimer = new Timer("PreviewRotateMonitor");
-            mPreviewRotateTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            onSwitchRotate();
-                        }
-                    });
-                }
-            }, 100, 1000);
         }
     }
 
@@ -1467,40 +1529,6 @@ public class ScreenActivity extends Activity implements
         mPreviewWindowShow = false;
     }
 
-    /**
-     * 摄像头预览滤镜示例
-     */
-    private void showChooseFilter() {
-        AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(this)
-                .setTitle("请选择悬浮窗口美颜滤镜")
-                .setSingleChoiceItems(
-                        new String[]{"BEAUTY_SOFT", "SKIN_WHITEN", "BEAUTY_ILLUSION", "DENOISE",
-                                "BEAUTY_SMOOTH", "DEMOFILTER", "GROUP_FILTER"}, -1,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                if (which < 5) {
-                                    mCameraPreviewKit.getImgTexFilterMgt().setFilter(
-                                            mCameraPreviewKit.getGLRender(), which + 16);
-                                } else if (which == 5) {
-                                    mCameraPreviewKit.getImgTexFilterMgt().setFilter(
-                                            new DemoFilter(mCameraPreviewKit.getGLRender()));
-                                } else if (which == 6) {
-                                    List<ImgTexFilter> groupFilter = new LinkedList<>();
-                                    groupFilter.add(new DemoFilter2(mCameraPreviewKit.getGLRender()));
-                                    groupFilter.add(new DemoFilter3(mCameraPreviewKit.getGLRender()));
-                                    groupFilter.add(new DemoFilter4(mCameraPreviewKit.getGLRender()));
-                                    mCameraPreviewKit.getImgTexFilterMgt().setFilter(groupFilter);
-                                }
-                                dialog.dismiss();
-                            }
-                        })
-                .create();
-        alertDialog.setCancelable(false);
-        alertDialog.show();
-    }
-
     private void updateViewPosition() {
         if (mWmParams != null && mWindowManager != null) {
             mWmParams.gravity = Gravity.RIGHT | Gravity.TOP;
@@ -1515,4 +1543,66 @@ public class ScreenActivity extends Activity implements
     private int align(int val, int align) {
         return (val + align - 1) / align * align;
     }
+
+    /*****************************
+     * mixer其他音频文件示例代码
+     **********************************/
+    private KSYMediaPlayer mTestMediaPlayer;
+    private AudioInputBase mAudioInputBase;
+
+    private void createMediaPlayer() {
+        if (mTestMediaPlayer == null) {
+            mTestMediaPlayer = new KSYMediaPlayer.Builder(this).build();
+        }
+        //创建该音频的输入并connect
+        if (mAudioInputBase == null) {
+            mAudioInputBase = new AudioInputBase();
+            mScreenStreamer.connectAudioInput(mAudioInputBase);
+        }
+    }
+
+    private String mBgmPath = "/sdcard/test.mp3";
+
+    private void startPlay() {
+        mTestMediaPlayer.reset();
+        mTestMediaPlayer.setOnAudioPCMAvailableListener(mOnAudioPCMListener);
+        mTestMediaPlayer.setPlayerMute(0);
+        mTestMediaPlayer.setLooping(false);
+        mTestMediaPlayer.shouldAutoPlay(true);
+        try {
+            mTestMediaPlayer.setDataSource(mBgmPath);
+            mTestMediaPlayer.prepareAsync();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopPlay() {
+        if (mTestMediaPlayer != null) {
+            mTestMediaPlayer.setOnAudioPCMAvailableListener(null);
+            mTestMediaPlayer.stop();
+        }
+    }
+
+    private void releasePlay() {
+        mScreenStreamer.disconnectAudioInput(mAudioInputBase, true);
+        stopPlay();
+        if (mTestMediaPlayer != null) {
+            mTestMediaPlayer.release();
+            mTestMediaPlayer = null;
+        }
+    }
+
+
+    private KSYMediaPlayer.OnAudioPCMListener mOnAudioPCMListener =
+            new KSYMediaPlayer.OnAudioPCMListener() {
+                @Override
+                public void onAudioPCMAvailable(IMediaPlayer iMediaPlayer, ByteBuffer byteBuffer,
+                                                long timestamp, int channels, int samplerate,
+                                                int samplefmt) {
+                    //输入音频文件
+                    mAudioInputBase.onAudioPCMAvailable(byteBuffer, timestamp, channels,
+                            samplerate, samplefmt);
+                }
+            };
 }

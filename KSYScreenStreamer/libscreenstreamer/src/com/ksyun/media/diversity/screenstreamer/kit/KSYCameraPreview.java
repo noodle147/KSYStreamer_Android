@@ -16,7 +16,7 @@ import android.view.TextureView;
 /**
  * kit for camera preview for screenRecord
  */
-public class KSYCameraPreview{
+public class KSYCameraPreview {
     private static final String TAG = KSYCameraPreview.class.getSimpleName();
 
     private Context mContext;
@@ -76,11 +76,28 @@ public class KSYCameraPreview{
         if (degrees % 90 != 0) {
             throw new IllegalArgumentException("Invalid rotate degrees");
         }
+
+        if (mRotateDegrees == degrees) {
+            return;
+        }
+
+        boolean isLastLandscape = (mRotateDegrees % 180) != 0;
+        boolean isLandscape = (degrees % 180) != 0;
+        if (isLastLandscape != isLandscape) {
+            if (mPreviewWidth > 0 || mPreviewHeight > 0) {
+                setPreviewResolution(mPreviewHeight, mPreviewWidth);
+            }
+        }
         mRotateDegrees = degrees;
+        mCameraPreview.setOrientation(degrees);
+
+        mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
+        mImgTexMixer.setTargetSize(mPreviewWidth, mPreviewHeight);
     }
 
     /**
      * get rotate degrees
+     *
      * @return degrees Degrees in anti-clockwise, only 0, 90, 180, 270 accepted.
      */
     public int getRotateDegrees() {
@@ -107,6 +124,11 @@ public class KSYCameraPreview{
         }
         mPreviewWidth = width;
         mPreviewHeight = height;
+
+        if (mScreenRenderWidth != 0 && mScreenRenderHeight != 0) {
+            calResolution();
+            mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
+        }
     }
 
     /**
@@ -116,11 +138,11 @@ public class KSYCameraPreview{
      * {@link #startCameraPreview(int)} call.
      *
      * @param idx Resolution index.<br/>
+     * @throws IllegalArgumentException
      * @see StreamerConstants#VIDEO_RESOLUTION_360P
      * @see StreamerConstants#VIDEO_RESOLUTION_480P
      * @see StreamerConstants#VIDEO_RESOLUTION_540P
      * @see StreamerConstants#VIDEO_RESOLUTION_720P
-     * @throws IllegalArgumentException
      */
     public void setPreviewResolution(int idx) throws IllegalArgumentException {
         if (idx < StreamerConstants.VIDEO_RESOLUTION_360P ||
@@ -130,10 +152,15 @@ public class KSYCameraPreview{
         mPreviewResolution = idx;
         mPreviewWidth = 0;
         mPreviewHeight = 0;
+        if (mScreenRenderWidth != 0 && mScreenRenderHeight != 0) {
+            calResolution();
+            mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
+        }
     }
 
     /**
      * get preview width
+     *
      * @return preview width
      */
     public int getPreviewWidth() {
@@ -142,6 +169,7 @@ public class KSYCameraPreview{
 
     /**
      * get preview height
+     *
      * @return preview height
      */
     public int getPreviewHeight() {
@@ -168,6 +196,7 @@ public class KSYCameraPreview{
 
     /**
      * get preview frame rate
+     *
      * @return preview frame rate
      */
     public float getPreviewFps() {
@@ -207,6 +236,7 @@ public class KSYCameraPreview{
 
     /**
      * get camera facing.
+     *
      * @return camera facing
      */
     public int getCameraFacing() {
@@ -286,7 +316,6 @@ public class KSYCameraPreview{
     }
 
 
-
     /**
      * Should be called on Activity.onResume or Fragment.onResume.
      */
@@ -311,31 +340,6 @@ public class KSYCameraPreview{
         mCameraPreview.setOrientation(mRotateDegrees);
         mCameraPreview.setPreviewSize(mPreviewWidth, mPreviewHeight);
         mCameraPreview.setPreviewFps(mPreviewFps);
-
-        mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
-        mImgTexMixer.setTargetSize(mPreviewWidth, mPreviewHeight);
-    }
-
-    private void updatePreviewParams() {
-        //calResolution
-        int val = getShortEdgeLength(mPreviewResolution);
-        if (mScreenRenderWidth > mScreenRenderHeight) {
-            mPreviewHeight = val;
-        } else {
-            mPreviewWidth = val;
-        }
-
-        if (mPreviewWidth == 0) {
-            mPreviewWidth = mPreviewHeight * mScreenRenderWidth / mScreenRenderHeight;
-        } else if (mPreviewHeight == 0) {
-            mPreviewHeight = mPreviewWidth * mScreenRenderHeight / mScreenRenderWidth;
-        }
-        mPreviewWidth = align(mPreviewWidth, 8);
-        mPreviewHeight = align(mPreviewHeight, 8);
-
-        //set params
-        mCameraPreview.setOrientation(mRotateDegrees);
-        mCameraPreview.setPreviewSize(mPreviewWidth, mPreviewHeight);
 
         mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
         mImgTexMixer.setTargetSize(mPreviewWidth, mPreviewHeight);
@@ -392,8 +396,6 @@ public class KSYCameraPreview{
                 setPreviewParams();
                 mCameraPreview.start(mCameraFacing);
                 mDelayedStartCameraPreview = false;
-            } else {
-                updatePreviewParams();
             }
         }
 
