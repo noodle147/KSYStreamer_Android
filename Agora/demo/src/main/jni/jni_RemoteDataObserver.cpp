@@ -126,7 +126,7 @@ static void onRTCAudioFrame(void* opaque, unsigned char* frame_data, int length,
 }
 
 
-jlong Java_com_ksyun_media_agora_RemoteDataObserver_createObserver
+jlong Java_com_ksyun_media_diversity_agorastreamer_agora_RemoteDataObserver_createObserver
   (JNIEnv *env, jobject thiz)
 {
     RemoteDataObserver* remoteDataObserver = new RemoteDataObserver();
@@ -145,7 +145,7 @@ jlong Java_com_ksyun_media_agora_RemoteDataObserver_createObserver
     return (jlong)(intptr_t) remoteDataObserver;
 }
 
-void Java_com_ksyun_media_agora_RemoteDataObserver_release
+void Java_com_ksyun_media_diversity_agorastreamer_agora_RemoteDataObserver_release
   (JNIEnv *env, jobject thiz, jlong ptr)
 {
     __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "[RemoteDataObserver][release]");
@@ -157,7 +157,7 @@ void Java_com_ksyun_media_agora_RemoteDataObserver_release
     return;
 }
 
-void Java_com_ksyun_media_agora_RemoteDataObserver_enableObserver
+void Java_com_ksyun_media_diversity_agorastreamer_agora_RemoteDataObserver_enableObserver
   (JNIEnv *env, jobject thiz, jlong ptr, jboolean enable) {
     RemoteDataObserver* remoteDataObserver = getInstance(ptr);
     if(remoteDataObserver != NULL) {
@@ -165,7 +165,7 @@ void Java_com_ksyun_media_agora_RemoteDataObserver_enableObserver
     }
   }
 
-void Java_com_ksyun_media_agora_RemoteDataObserver_resetRemoteUid(
+void Java_com_ksyun_media_diversity_agorastreamer_agora_RemoteDataObserver_resetRemoteUid(
         JNIEnv *env, jobject instance, jlong wrapperInstance) {
     RemoteDataObserver* remoteDataObserver = getInstance(wrapperInstance);
     if(remoteDataObserver != NULL) {
