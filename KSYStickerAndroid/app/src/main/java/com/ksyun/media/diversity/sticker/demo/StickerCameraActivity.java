@@ -139,7 +139,6 @@ public class StickerCameraActivity  extends Activity implements
     private final static String LICENSE_NAME = "SenseME.lic";
     private final static String PREF_ACTIVATE_CODE_FILE = "activate_code_file";
     private final static String PREF_ACTIVATE_CODE = "activate_code";
-    private String MODEL_PATH = "action3.1.0.model";
     private final static int MSG_LOADTHUMB = 0;
     private final static int MSG_DOWNLOADSUCCESS = 1;
     private final static int MSG_STARTDOWNLOAD = 2;
@@ -180,6 +179,8 @@ public class StickerCameraActivity  extends Activity implements
     private String mBgmPath = "/sdcard/test.mp3";
     private String mLogoPath = "file:///sdcard/test.png";
     private boolean mHasAuthorized = false;
+
+    private Context mContext;
 
     private Bitmap mNullBitmap = null;
 
@@ -319,7 +320,9 @@ public class StickerCameraActivity  extends Activity implements
 
         mHasAuthorized = authorized(false);
 
-        copyFileIfNeed(MODEL_PATH);
+        mContext = this;
+
+        copyFileIfNeed(SenseArMaterialService.MODEL_FILE_NAME);
 
         //如果license没检查通过，仍然可以使用demo，但是贴纸功能不能work
         if (!checkLicense()) {
@@ -327,7 +330,7 @@ public class StickerCameraActivity  extends Activity implements
         }
         //初始化SenseArMaterialRender服务
         SenseARMaterialRenderBuilder.getInstance().initSenseARMaterialRender(getFilePath
-                (MODEL_PATH),getApplicationContext());
+                (SenseArMaterialService.MODEL_FILE_NAME),mContext);
 
 
         mStreamer = new KSYStreamer(this);
@@ -465,6 +468,8 @@ public class StickerCameraActivity  extends Activity implements
     @Override
     public void onDestroy() {
         super.onDestroy();
+        //清空素材缓存
+        SenseArMaterialService.shareInstance().clearCache(getApplicationContext());
         SenseARMaterialRenderBuilder.getInstance().releaseSenseArMaterialRender();
         if (mMainHandler != null) {
             mMainHandler.removeCallbacksAndMessages(null);
@@ -898,7 +903,7 @@ public class StickerCameraActivity  extends Activity implements
                     InputStream in = getApplicationContext().getAssets().open(fileName);
                     if(in == null)
                     {
-                        Log.e("copyMode", "the src is not existed");
+                        Log.e(TAG, "the src is not existed");
                         return false;
                     }
                     OutputStream out = new FileOutputStream(file);
@@ -909,6 +914,7 @@ public class StickerCameraActivity  extends Activity implements
                     }
                     in.close();
                     out.close();
+                    Log.e(TAG, "copy file succ");
                 } catch (IOException e) {
                     file.delete();
                     return false;
@@ -1181,7 +1187,7 @@ public class StickerCameraActivity  extends Activity implements
             this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Log.e("", "APPID: " + Constants.APPID + " key: " + Constants.KEY);
+                    Log.e(TAG, "APPID: " + Constants.APPID + " key: " + Constants.KEY);
                     Toast.makeText(getApplicationContext(), "Application authorized failed", Toast.LENGTH_LONG).show();
                     if (isFinished) {
                         finish();

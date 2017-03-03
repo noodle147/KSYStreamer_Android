@@ -41,7 +41,9 @@ public class ImgStickerFilter extends ImgFilterBase {
     protected int mOutTexture = ImgTexFrame.NO_TEXTURE;
     private int mOutFrameBuffer = -1;
     private int[] mViewPort = new int[4];
+    private SenseArMaterial mCurrentMaterial = null;
     private SenseArMaterial mMaterial = null;
+    private boolean isFirstSet = true;
     private static final int SINK_NUM = 2;
 
     private int mTriggerTimes = 0;
@@ -96,18 +98,18 @@ public class ImgStickerFilter extends ImgFilterBase {
         Matrix.translateM(mTexMatrix, 0, 0, 1, 0);
         Matrix.scaleM(mTexMatrix, 0, 1, -1, 1);
         mImgTexToBuf = new ImgTexToBuf(glRender);
-//        mImgTexToBuf.setErrorListener(new ImgTexToBuf.ErrorListener() {
-//            @Override
-//            public void onError(ImgTexToBuf imgTexToBuf, int err) {
-//                if (mErrorListener != null) {
-//                    int errno = ERROR_UNKNOWN;
-//                    if (err == ImgTexToBuf.ERROR_UNSUPPORTED) {
-//                        errno = ERROR_UNSUPPORTED;
-//                        //should do roll back here
-//                    }
-//                }
-//            }
-//        });
+        mImgTexToBuf.setErrorListener(new ImgTexToBuf.ErrorListener() {
+            @Override
+            public void onError(ImgTexToBuf imgTexToBuf, int err) {
+                if (mErrorListener != null) {
+                    int errno = ERROR_UNKNOWN;
+                    if (err == ImgTexToBuf.ERROR_UNSUPPORTED) {
+                        errno = ERROR_UNSUPPORTED;
+                        //should do roll back here
+                    }
+                }
+            }
+        });
         mImgTexToBuf.setOutputColorFormat(ImgBufFormat.FMT_RGBA);
         mImgTexToBuf.mSrcPin.connect(mImgBufSinkPin);
 
@@ -241,7 +243,7 @@ public class ImgStickerFilter extends ImgFilterBase {
                             mMaterialRender.setFrameSize(frame.format.width, frame.format.height);
                             byte[] renderInfo = mMaterialRender.generateBeautyAndRenderInfo(mBufArray,
                                     SenseArMaterialRender.SenseArImageFormat.ST_PIX_FMT_RGBA8888, getCurrentOrientation(), false,
-                                    mMaterial, frame.textureId, 0, null,
+                                    frame.textureId, 0, null,
                                     SenseArMaterialRender.SenseArImageFormat.ST_PIX_FMT_NV21);
                             if (renderInfo != null && renderInfo.length > 0) {
                                 long startTime = System.currentTimeMillis();
@@ -254,13 +256,19 @@ public class ImgStickerFilter extends ImgFilterBase {
                                     Log.d(TAG, "sticker cost: " + (System.currentTimeMillis() - startTime));
                                 }
 
+
+                                if(isFirstSet && mCurrentMaterial != null){
+                                    mMaterialRender.setMaterial(mCurrentMaterial, null);
+                                    isFirstSet = false;
+                                }
+
                                 //根据特殊素材id获取素材parts,根据parts属性和trigger action设置现显示不同parts组合
-                                if (mMaterial != null) {
+                                if(mCurrentMaterial != null && mMaterial == mCurrentMaterial){
                                     //爱心素材
-                                    if (mMaterial.id.equals("20170109124245233850861")) {
+                                    if(mMaterial.id.equals("20170109124245233850861")){
                                         showMaterialParts("20170109124245233850861");
                                         //可乐素材
-                                    } else if (mMaterial.id.equals("20170109124355279333705")) {
+                                    }else if(mMaterial.id.equals("20170109124355279333705")){
                                         showMaterialParts("20170109124355279333705");
                                     }
                                 }
@@ -349,7 +357,6 @@ public class ImgStickerFilter extends ImgFilterBase {
 
 
     public void startShowSticker(final SenseArMaterial material) {
-        mMaterial = material;
         if (!mInitialized && mMaterialRender != null) {
             mGLRender.queueEvent(new Runnable() {
                 @Override
@@ -357,6 +364,14 @@ public class ImgStickerFilter extends ImgFilterBase {
                     mMaterialRender.initGLResource();
                     setEffectParams(4.0f/7.0f);
                     mInitialized = true;
+                    setMaterial(material,null);
+                }
+            });
+        } else if(mInitialized && mMaterialRender != null) {
+            mGLRender.queueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    setMaterial(material,null);
                 }
             });
         }
@@ -386,6 +401,25 @@ public class ImgStickerFilter extends ImgFilterBase {
             mMaterialRender.setParam(SenseArMaterialRender.SenseArParamType.ST_AR_MORPH_SHRINK_FACE_RATIO, 0.11f);
             mMaterialRender.setParam(SenseArMaterialRender.SenseArParamType.ST_AR_MORPH_ENLARGE_EYE_RATIO, 0.17f);
             mMaterialRender.setParam(SenseArMaterialRender.SenseArParamType.ST_AR_MORPH_SHRINK_JAW_RATIO, 0.2f);
+        }
+    }
+
+    public void setMaterial(final SenseArMaterial material,final SenseArMaterialRender.SetMaterialCallback setMaterialCallback) {
+        if (mCurrentMaterial != material) {
+            mMaterialRender.setMaterial(material, new SenseArMaterialRender.SetMaterialCallback() {
+                @Override
+                public void callback(SenseArMaterialRender.RenderStatus ret) {
+                    mCurrentMaterial = null;
+                    if (ret == SenseArMaterialRender.RenderStatus.RENDER_SUCCESS) {
+                        mCurrentMaterial = material;
+                    }
+                    if(setMaterialCallback!=null)
+                    {
+                        setMaterialCallback.callback(ret);
+                    }
+                }
+            });
+            mMaterial = material;
         }
     }
 
