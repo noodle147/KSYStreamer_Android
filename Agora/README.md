@@ -48,6 +48,7 @@
 
 1 在Build.gradle中添加推流库依赖
 >需添加jcenter依赖，参考[demo](https://github.com/ksvc/KSYDiversityLive_Android/blob/master/Agora/build.gradle)
+
 ```java
     compile 'com.ksyun.media:libksylive-java:2.2.5'
     compile 'com.ksyun.media:libksylive-arm64:2.2.5'
