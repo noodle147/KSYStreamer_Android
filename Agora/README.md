@@ -54,6 +54,7 @@
     compile 'com.ksyun.media:libksylive-armv7a:2.2.5'
     compile 'com.ksyun.media:libksylive-x86:2.2.5'
 ```
+
 2 集成[JNI](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/Agora/demo/src/main/jni)代码
 * 本层代码集成了Agora的Native接口，负责接收remote音视频，并接收本地采集的音频数据
 * JNI集成方式相信你不是问题，可自行百度
