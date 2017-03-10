@@ -1,6 +1,8 @@
 package com.ksyun.media.diversity.faceunity.kit;
 
 import com.faceunity.wrapper.faceunity;
+import com.ksyun.media.streamer.filter.imgbuf.ImgBufScaleFilter;
+import com.ksyun.media.streamer.filter.imgtex.ImgFilterBase;
 import com.ksyun.media.streamer.framework.ImgBufFrame;
 import com.ksyun.media.streamer.framework.ImgTexFrame;
 import com.ksyun.media.streamer.framework.SinkPin;
@@ -23,8 +25,10 @@ import javax.microedition.khronos.opengles.GL10;
  * draw face unity prop&beauty
  */
 
-public class ImgFaceunityFilter {
+public class ImgFaceunityFilter extends ImgFilterBase {
     private final static String TAG = "ImgFaceunityFilter";
+
+    private final static String VERSION = "1.0.2.0";
 
     private final static String PROP_TYPE_BEAGLEDOG = "Faceunity/BeagleDog.mp3";
     private final static String PROP_TYPE_COLORGROWN = "Faceunity/ColorCrown.mp3";
@@ -79,10 +83,14 @@ public class ImgFaceunityFilter {
             BEAUTY_TYPE_WARM
     };
 
+    private static final int SINK_NUM = 2;
     private GLRender mGLRender;
     private SinkPin<ImgTexFrame> mTexSinkPin;
     private SinkPin<ImgBufFrame> mBufSinkPin;
     private SrcPin<ImgTexFrame> mSrcPin;
+
+    private ImgYFlipFilter mImgYFlipFilter;
+    private ImgBufScaleFilter mFaceunityScale;
 
     private boolean mInited = false;
     private int mFrameID;
@@ -117,6 +125,11 @@ public class ImgFaceunityFilter {
         mSrcPin = new SrcPin<>();
         mGLRender.addListener(mGLRenderListener);
 
+        mImgYFlipFilter = new ImgYFlipFilter(mGLRender);
+        mImgYFlipFilter.getSrcPin().connect(mTexSinkPin);
+        mFaceunityScale = new ImgBufScaleFilter();
+        mFaceunityScale.getSrcPin().connect(mBufSinkPin);
+
         mTexMatrix = new float[16];
         Matrix.setIdentityM(mTexMatrix, 0);
         Matrix.translateM(mTexMatrix, 0, 0, 1, 0);
@@ -139,17 +152,34 @@ public class ImgFaceunityFilter {
     }
 
     public SinkPin<ImgTexFrame> getTexSinkPin() {
-        return mTexSinkPin;
+        return mImgYFlipFilter.getSinkPin();
     }
 
     public SinkPin<ImgBufFrame> getBufSinkPin() {
-        return mBufSinkPin;
+        return mFaceunityScale.getSinkPin();
+    }
+
+    @Override
+    public int getSinkPinNum() {
+        return SINK_NUM;
+    }
+
+    @Override
+    public SinkPin<ImgTexFrame> getSinkPin(int i) {
+        return mImgYFlipFilter.getSinkPin();
     }
 
     public SrcPin<ImgTexFrame> getSrcPin() {
         return mSrcPin;
     }
 
+    public void setMirror(boolean isMirror) {
+        mFaceunityScale.setMirror(isMirror);
+    }
+
+    public void setTargetSize(int targetWith, int targetHeight) {
+        mFaceunityScale.setTargetSize(targetWith, targetHeight);
+    }
     /**
      * 0~12 使用贴纸，其它不使用贴纸
      *
@@ -314,7 +344,6 @@ public class ImgFaceunityFilter {
         @Override
         public void onFrameAvailable(ImgTexFrame frame) {
             if (mSrcPin.isConnected()) {
-
                 int isTracking = faceunity.fuIsTracking();
                 if (isTracking == 0) {
                     //人脸检测状态，为0代表当前画面中未检测到人脸

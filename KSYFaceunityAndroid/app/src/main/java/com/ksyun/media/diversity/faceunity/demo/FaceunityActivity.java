@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -23,6 +24,8 @@ import android.support.v7.widget.AppCompatSpinner;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.OrientationEventListener;
+import android.view.Surface;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -36,16 +39,18 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.ksyun.media.diversity.faceunity.kit.KSYFaceunityStreamer;
+import com.ksyun.media.diversity.faceunity.kit.ImgFaceunityFilter;
 import com.ksyun.media.player.IMediaPlayer;
 import com.ksyun.media.streamer.capture.camera.CameraTouchHelper;
 import com.ksyun.media.streamer.filter.audio.AudioFilterBase;
 import com.ksyun.media.streamer.filter.audio.AudioReverbFilter;
 import com.ksyun.media.streamer.filter.imgtex.ImgBeautyProFilter;
+import com.ksyun.media.streamer.filter.imgtex.ImgBeautyToneCurveFilter;
 import com.ksyun.media.streamer.filter.imgtex.ImgFilterBase;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexFilter;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterBase;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterMgt;
+import com.ksyun.media.streamer.framework.AVConst;
 import com.ksyun.media.streamer.kit.KSYStreamer;
 import com.ksyun.media.streamer.kit.OnAudioRawDataListener;
 import com.ksyun.media.streamer.kit.OnPreviewFrameListener;
@@ -115,10 +120,14 @@ public class FaceunityActivity extends Activity implements
     private AppCompatSeekBar mFaceunityCheekSeekBar;
     private AppCompatSeekBar mFaceunityEyeSeekBar;
 
+    private int mLastRotation;
+    private OrientationEventListener mOrientationEventListener;
+
     private ButtonObserver mObserverButton;
     private CheckBoxObserver mCheckBoxObserver;
 
-    private KSYFaceunityStreamer mStreamer;
+    private KSYStreamer mStreamer;
+    private ImgFaceunityFilter mImgFaceunityFilter;
     private Handler mMainHandler;
     private Timer mTimer;
 
@@ -132,7 +141,7 @@ public class FaceunityActivity extends Activity implements
     private String mDebugInfo = "";
     private String mBgmPath = "/sdcard/test.mp3";
     private String mLogoPath = "file:///sdcard/test.png";
-    private String mRecordUrl = "/sdcard/test.mp4";
+    private String mRecordUrl = "/sdcard/rec_test.mp4";
 
     private boolean mHWEncoderUnsupported;
     private boolean mSWEncoderUnsupported;
@@ -148,18 +157,18 @@ public class FaceunityActivity extends Activity implements
     public final static String VIDEO_BITRATE = "video_bitrate";
     public final static String AUDIO_BITRATE = "audio_bitrate";
     public final static String VIDEO_RESOLUTION = "video_resolution";
-    public final static String LANDSCAPE = "landscape";
+    public final static String ORIENTATION = "orientation";
     public final static String ENCODE_TYPE = "encode_type";
     public final static String ENCODE_METHOD = "encode_method";
     public final static String ENCODE_SCENE = "encode_scene";
     public final static String ENCODE_PROFILE = "encode_profile";
-    public final static String START_ATUO = "start_auto";
+    public final static String START_AUTO = "start_auto";
     public static final String SHOW_DEBUGINFO = "show_debuginfo";
 
     public static void startActivity(Context context, int fromType,
                                      String rtmpUrl, int frameRate,
                                      int videoBitrate, int audioBitrate,
-                                     int videoResolution, boolean isLandscape,
+                                     int videoResolution, int orientation,
                                      int encodeType, int encodeMethod,
                                      int encodeScene, int encodeProfile,
                                      boolean startAuto, boolean showDebugInfo) {
@@ -171,12 +180,12 @@ public class FaceunityActivity extends Activity implements
         intent.putExtra(VIDEO_BITRATE, videoBitrate);
         intent.putExtra(AUDIO_BITRATE, audioBitrate);
         intent.putExtra(VIDEO_RESOLUTION, videoResolution);
-        intent.putExtra(LANDSCAPE, isLandscape);
+        intent.putExtra(ORIENTATION, orientation);
         intent.putExtra(ENCODE_TYPE, encodeType);
         intent.putExtra(ENCODE_METHOD, encodeMethod);
         intent.putExtra(ENCODE_SCENE, encodeScene);
         intent.putExtra(ENCODE_PROFILE, encodeProfile);
-        intent.putExtra(START_ATUO, startAuto);
+        intent.putExtra(START_AUTO, startAuto);
         intent.putExtra(SHOW_DEBUGINFO, showDebugInfo);
         context.startActivity(intent);
     }
@@ -247,7 +256,7 @@ public class FaceunityActivity extends Activity implements
 
 
         mMainHandler = new Handler();
-        mStreamer = new KSYFaceunityStreamer(this);
+        mStreamer = new KSYStreamer(this);
         Bundle bundle = getIntent().getExtras();
         if (bundle != null) {
             String url = bundle.getString(URL);
@@ -289,15 +298,40 @@ public class FaceunityActivity extends Activity implements
             int encodeProfile = bundle.getInt(ENCODE_PROFILE);
             mStreamer.setVideoEncodeProfile(encodeProfile);
 
-            mIsLandscape = bundle.getBoolean(LANDSCAPE, false);
-            mStreamer.setRotateDegrees(mIsLandscape ? 90 : 0);
-            if (mIsLandscape) {
+            int orientation = bundle.getInt(ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            if (orientation == ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR);
+                int rotation = getDisplayRotation();
+                mIsLandscape = (rotation % 180) != 0;
+                mStreamer.setRotateDegrees(rotation);
+                mLastRotation = rotation;
+                mOrientationEventListener = new OrientationEventListener(this,
+                        SensorManager.SENSOR_DELAY_NORMAL) {
+                    @Override
+                    public void onOrientationChanged(int orientation) {
+                        int rotation = getDisplayRotation();
+                        if (rotation != mLastRotation) {
+                            Log.d(TAG, "Rotation changed " + mLastRotation + "->" + rotation);
+                            mIsLandscape = (rotation % 180) != 0;
+                            mStreamer.setRotateDegrees(rotation);
+                            updateFaceunitParams();
+                            hideWaterMark();
+                            showWaterMark();
+                            mLastRotation = rotation;
+                        }
+                    }
+                };
+            } else if (orientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                mIsLandscape = true;
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                mStreamer.setRotateDegrees(90);
             } else {
+                mIsLandscape = false;
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                mStreamer.setRotateDegrees(0);
             }
 
-            mAutoStart = bundle.getBoolean(START_ATUO, false);
+            mAutoStart = bundle.getBoolean(START_AUTO, false);
             mPrintDebugInfo = bundle.getBoolean(SHOW_DEBUGINFO, false);
         }
         mStreamer.setDisplayPreview(mCameraPreviewView);
@@ -343,11 +377,14 @@ public class FaceunityActivity extends Activity implements
         mCameraPreviewView.setOnTouchListener(cameraTouchHelper);
         // set CameraHintView to show focus rect and zoom ratio
         cameraTouchHelper.setCameraHintView(mCameraHintView);
+
+        initFaceunity();
     }
 
     private void initBeautyUI() {
         String[] items = new String[]{"DISABLE", "BEAUTY_SOFT", "SKIN_WHITEN", "BEAUTY_ILLUSION",
-                "BEAUTY_DENOISE", "BEAUTY_SMOOTH", "BEAUTY_PRO", "DEMO_FILTER", "GROUP_FILTER"};
+                "BEAUTY_DENOISE", "BEAUTY_SMOOTH", "BEAUTY_PRO", "DEMO_FILTER", "GROUP_FILTER",
+                "ToneCurve", "复古", "胶片"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item, items);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -371,11 +408,29 @@ public class FaceunityActivity extends Activity implements
                     mStreamer.getImgTexFilterMgt().setFilter(
                             new DemoFilter(mStreamer.getGLRender()));
                 } else if (position == 8) {
-                    List<ImgTexFilter> groupFilter = new LinkedList<>();
+                    List<ImgFilterBase> groupFilter = new LinkedList<>();
                     groupFilter.add(new DemoFilter2(mStreamer.getGLRender()));
                     groupFilter.add(new DemoFilter3(mStreamer.getGLRender()));
                     groupFilter.add(new DemoFilter4(mStreamer.getGLRender()));
                     mStreamer.getImgTexFilterMgt().setFilter(groupFilter);
+                } else if (position == 9) {
+                    ImgBeautyToneCurveFilter acvFilter = new ImgBeautyToneCurveFilter(mStreamer.getGLRender());
+                    acvFilter.setFromCurveFileInputStream(
+                            FaceunityActivity.this.getResources().openRawResource(R.raw.tone_cuver_sample));
+
+                    mStreamer.getImgTexFilterMgt().setFilter(acvFilter);
+                } else if (position == 10) {
+                    ImgBeautyToneCurveFilter acvFilter = new ImgBeautyToneCurveFilter(mStreamer.getGLRender());
+                    acvFilter.setFromCurveFileInputStream(
+                            FaceunityActivity.this.getResources().openRawResource(R.raw.fugu));
+
+                    mStreamer.getImgTexFilterMgt().setFilter(acvFilter);
+                } else if (position == 11) {
+                    ImgBeautyToneCurveFilter acvFilter = new ImgBeautyToneCurveFilter(mStreamer.getGLRender());
+                    acvFilter.setFromCurveFileInputStream(
+                            FaceunityActivity.this.getResources().openRawResource(R.raw.jiaopian));
+
+                    mStreamer.getImgTexFilterMgt().setFilter(acvFilter);
                 }
                 List<ImgFilterBase> filters = mStreamer.getImgTexFilterMgt().getFilter();
                 if (filters != null && !filters.isEmpty()) {
@@ -444,6 +499,10 @@ public class FaceunityActivity extends Activity implements
     @Override
     public void onResume() {
         super.onResume();
+        if (mOrientationEventListener != null &&
+                mOrientationEventListener.canDetectOrientation()) {
+            mOrientationEventListener.enable();
+        }
         startCameraPreviewWithPermCheck();
         mStreamer.onResume();
         mStreamer.setUseDummyAudioCapture(false);
@@ -456,6 +515,9 @@ public class FaceunityActivity extends Activity implements
     @Override
     public void onPause() {
         super.onPause();
+        if (mOrientationEventListener != null) {
+            mOrientationEventListener.disable();
+        }
         mStreamer.onPause();
         mStreamer.setUseDummyAudioCapture(true);
         mStreamer.stopCameraPreview();
@@ -486,6 +548,21 @@ public class FaceunityActivity extends Activity implements
                 break;
         }
         return true;
+    }
+
+    private int getDisplayRotation() {
+        int rotation = getWindowManager().getDefaultDisplay().getRotation();
+        switch (rotation) {
+            case Surface.ROTATION_0:
+                return 0;
+            case Surface.ROTATION_90:
+                return 90;
+            case Surface.ROTATION_180:
+                return 180;
+            case Surface.ROTATION_270:
+                return 270;
+        }
+        return 0;
     }
 
     //start streaming
@@ -603,6 +680,11 @@ public class FaceunityActivity extends Activity implements
                     mChronometer.start();
                     beginInfoUploadTimer();
                     break;
+                case StreamerConstants.KSY_STREAMER_OPEN_FILE_SUCCESS:
+                    Log.d(TAG, "KSY_STREAMER_OPEN_FILE_SUCCESS");
+                    mChronometer.setBase(SystemClock.elapsedRealtime());
+                    mChronometer.start();
+                    break;
                 case StreamerConstants.KSY_STREAMER_FRAME_SEND_SLOW:
                     Log.d(TAG, "KSY_STREAMER_FRAME_SEND_SLOW " + msg1 + "ms");
                     Toast.makeText(FaceunityActivity.this, "Network not good!",
@@ -716,7 +798,9 @@ public class FaceunityActivity extends Activity implements
                 case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_CLOSE_FAILED:
                 case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_ERROR_UNKNOWN:
                 case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_OPEN_FAILED:
+                case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_FORMAT_NOT_SUPPORTED:
                 case StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_WRITE_FAILED:
+                    stopRecord();
                     break;
                 case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNSUPPORTED:
                 case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNKNOWN: {
@@ -928,6 +1012,8 @@ public class FaceunityActivity extends Activity implements
 
     private void onFrontMirrorChecked(boolean isChecked) {
         mStreamer.setFrontCameraMirror(isChecked);
+
+        updateFaceunitParams();
     }
 
     private void onAudioOnlyChecked(boolean isChecked) {
@@ -1106,13 +1192,16 @@ public class FaceunityActivity extends Activity implements
                 }
                 if (position == 0) {
                     //disable faceunity beauty
-                    mStreamer.getFaceuintyFilter().setBeautyType(-1);
+                    if (mImgFaceunityFilter == null) {
+                        return;
+                    }
+                    mImgFaceunityFilter.setBeautyType(-1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyCheekLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyEyeLayout.setVisibility(View.INVISIBLE);
                 } else {
-                    mStreamer.getFaceuintyFilter().setBeautyType(position - 1);
+                    mImgFaceunityFilter.setBeautyType(position - 1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.VISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.VISIBLE);
                     mFaceunityBeautyCheekLayout.setVisibility(View.VISIBLE);
@@ -1129,17 +1218,17 @@ public class FaceunityActivity extends Activity implements
 
                                     if (seekBar == mFaceunityGrindSeekBar) {
                                         int val = Math.round(progress / (100.0f / 5f));
-                                        mStreamer.getFaceuintyFilter().setBeautyBlurLevel(val);
+                                        mImgFaceunityFilter.setBeautyBlurLevel(val);
                                     } else if (seekBar == mFaceunityWhitenSeekBar) {
                                         double val = (double) (progress / 50.f);
-                                        mStreamer.getFaceuintyFilter().setBeautyColorLevel(val);
+                                        mImgFaceunityFilter.setBeautyColorLevel(val);
                                     } else if (seekBar == mFaceunityCheekSeekBar) {
                                         double val = (double) (progress / 50.f);
-                                        mStreamer.getFaceuintyFilter().setBeautyCheekLevel(val);
+                                        mImgFaceunityFilter.setBeautyCheekLevel(val);
 
                                     } else if (seekBar == mFaceunityEyeSeekBar) {
                                         double val = (double) (progress / 50.f);
-                                        mStreamer.getFaceuintyFilter().setBeautyEyeLevel(val);
+                                        mImgFaceunityFilter.setBeautyEyeLevel(val);
                                     }
                                 }
 
@@ -1151,13 +1240,13 @@ public class FaceunityActivity extends Activity implements
                                 public void onStopTrackingTouch(SeekBar seekBar) {
                                 }
                             };
-                    int grid = (int) (mStreamer.getFaceuintyFilter().getBeautyBlurLvevl() * 100f *
+                    int grid = (int) (mImgFaceunityFilter.getBeautyBlurLvevl() * 100f *
                             16f);
-                    int whiten = (int) (mStreamer.getFaceuintyFilter().getBeautyColorLevel() * 50f);
+                    int whiten = (int) (mImgFaceunityFilter.getBeautyColorLevel() * 50f);
 
-                    int cheek = (int) (mStreamer.getFaceuintyFilter().getBeautyCheekLevel() * 100f *
+                    int cheek = (int) (mImgFaceunityFilter.getBeautyCheekLevel() * 100f *
                             16f);
-                    int eye = (int) (mStreamer.getFaceuintyFilter().getBeautyEyeLevel() * 50f);
+                    int eye = (int) (mImgFaceunityFilter.getBeautyEyeLevel() * 50f);
 
                     mFaceunityGrindSeekBar.setProgress(grid);
                     mFaceunityWhitenSeekBar.setProgress(whiten);
@@ -1180,26 +1269,38 @@ public class FaceunityActivity extends Activity implements
     }
 
     private void onFaceunityPropCheck(boolean isCheck) {
+        initFaceunity();
+
         if (isCheck) {
-            mStreamer.showFaceunityProp();
+            mStreamer.getCameraCapture().mImgBufSrcPin.connect(mImgFaceunityFilter.getBufSinkPin());
             showFaceunityPropChoose();
         } else {
-            mStreamer.hideFaceunityProp();
-            mStreamer.getFaceuintyFilter().setPropType(-1);
+            if (mFaceunityGestureCheckBox.isChecked()) {
+                mStreamer.getCameraCapture().mImgBufSrcPin.disconnect(mImgFaceunityFilter.getBufSinkPin(),
+                        false);
+            }
+            mImgFaceunityFilter.setPropType(-1);
         }
     }
 
     private void onFaceunityGestureCheck(boolean isCheck) {
+        initFaceunity();
+
         if (isCheck) {
-            mStreamer.showFaceunityGesture();
+            mStreamer.getCameraCapture().mImgBufSrcPin.connect(mImgFaceunityFilter.getBufSinkPin());
             showFaceunityGestureChoose();
         } else {
-            mStreamer.hideFaceunityGesture();
-            mStreamer.getFaceuintyFilter().setGestureType(-1);
+            if (!mFaceunityPropCheckBox.isChecked()) {
+                mStreamer.getCameraCapture().mImgBufSrcPin.disconnect(mImgFaceunityFilter.getBufSinkPin(),
+                        false);
+            }
+            mImgFaceunityFilter.setGestureType(-1);
         }
     }
 
     private void showFaceunityPropChoose() {
+        initFaceunity();
+
         AlertDialog alertDialog;
         alertDialog = new AlertDialog.Builder(this)
                 .setTitle("请选择贴纸")
@@ -1210,7 +1311,7 @@ public class FaceunityActivity extends Activity implements
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                mStreamer.getFaceuintyFilter().setPropType(which);
+                                mImgFaceunityFilter.setPropType(which);
                                 dialog.dismiss();
                             }
                         })
@@ -1220,6 +1321,8 @@ public class FaceunityActivity extends Activity implements
     }
 
     private void showFaceunityGestureChoose() {
+        initFaceunity();
+
         AlertDialog alertDialog;
         alertDialog = new AlertDialog.Builder(this)
                 .setTitle("请选择手势")
@@ -1228,12 +1331,33 @@ public class FaceunityActivity extends Activity implements
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                mStreamer.getFaceuintyFilter().setGestureType(which);
+                                mImgFaceunityFilter.setGestureType(which);
                                 dialog.dismiss();
                             }
                         })
                 .create();
         alertDialog.setCancelable(false);
         alertDialog.show();
+    }
+
+    private void initFaceunity() {
+        if (mImgFaceunityFilter == null) {
+            //add faceunity filter
+            mImgFaceunityFilter = new ImgFaceunityFilter(this, mStreamer.getGLRender());
+            mStreamer.getImgTexFilterMgt().setExtraFilter(mImgFaceunityFilter);
+        }
+
+        updateFaceunitParams();
+    }
+
+    private void updateFaceunitParams() {
+        mImgFaceunityFilter.setTargetSize(mStreamer.getTargetWidth(),
+                mStreamer.getTargetHeight());
+
+        if (mStreamer.isFrontCamera()) {
+            mImgFaceunityFilter.setMirror(true);
+        } else {
+            mImgFaceunityFilter.setMirror(false);
+        }
     }
 }
