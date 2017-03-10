@@ -41,7 +41,9 @@
       ```java
       void setRTCMainScreen(int mainScreenType)
       ```
+      
 ## 四. 快速集成  
+
 <img src="https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/agoraclass.png" width = "559.5" height = "433" alt="图片名称" align=center />
 
 1 在Build.gradle中添加推流库依赖
