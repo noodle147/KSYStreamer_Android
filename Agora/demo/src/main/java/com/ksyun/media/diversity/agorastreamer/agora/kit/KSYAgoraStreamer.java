@@ -25,7 +25,7 @@ import io.agora.rtc.IRtcEngineEventHandler;
 public class KSYAgoraStreamer extends KSYStreamer {
     private static final String TAG = "KSYAgoraStreamer";
     private static final boolean DEBUG = false;
-    private static final String VERSION = "1.0.2.2";
+    private static final String VERSION = "1.0.3.1";
 
     private static final int mIdxVideoSub = 3;
     private static final int mIdxAudioRemote = 2;
@@ -147,6 +147,12 @@ public class KSYAgoraStreamer extends KSYStreamer {
                         mHasSubConnecting = false;
                         mRTCClient.getRTCIO().stopReceiveRemoteData();
                         updateRTCConnect(RTC_MAIN_SCREEN_CAMERA);
+                        if(!mIsCalling) {
+                            if ((mIsRecording || mIsFileRecording) &&
+                                    !mAudioCapture.isRecordingState()) {
+                                mAudioCapture.start();
+                            }
+                        }
                         break;
                     }
 
@@ -272,11 +278,6 @@ public class KSYAgoraStreamer extends KSYStreamer {
         mRTCClient.getRTCIO().getRemoteAudioSrcPin().disconnect(false);
         //connect audio capture
         mAudioCapture.mAudioBufSrcPin.connect(mAudioResampleFilter.getSinkPin());
-
-        if ((mIsRecording || mIsFileRecording) &&
-                !mAudioCapture.isRecordingState()) {
-            mAudioCapture.start();
-        }
     }
 
     /**
