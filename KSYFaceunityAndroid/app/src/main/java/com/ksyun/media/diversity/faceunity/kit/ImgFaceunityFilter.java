@@ -28,7 +28,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class ImgFaceunityFilter extends ImgFilterBase {
     private final static String TAG = "ImgFaceunityFilter";
 
-    private final static String VERSION = "1.0.2.0";
+    private final static String VERSION = "1.0.2.1";
 
     private final static String PROP_TYPE_BEAGLEDOG = "Faceunity/BeagleDog.mp3";
     private final static String PROP_TYPE_COLORGROWN = "Faceunity/ColorCrown.mp3";
@@ -275,7 +275,7 @@ public class ImgFaceunityFilter extends ImgFilterBase {
     public void release() {
         mSrcPin.disconnect(true);
         if (mOutTexture != ImgTexFrame.NO_TEXTURE) {
-            FboManager.getInstance().unlock(mOutTexture);
+            mGLRender.getFboManager().unlock(mOutTexture);
             mOutTexture = ImgTexFrame.NO_TEXTURE;
         }
         mInputBufArray = null;
@@ -382,9 +382,9 @@ public class ImgFaceunityFilter extends ImgFilterBase {
 
                     if (m_items[0] != 0 || m_items[1] != 0 || m_items[2] != 0) {
                         if (mOutTexture == ImgTexFrame.NO_TEXTURE) {
-                            mOutTexture = FboManager.getInstance()
+                            mOutTexture = mGLRender.getFboManager()
                                     .getTextureAndLock(frame.format.width, frame.format.height);
-                            mOutFrameBuffer = FboManager.getInstance().getFramebuffer(mOutTexture);
+                            mOutFrameBuffer = mGLRender.getFboManager().getFramebuffer(mOutTexture);
                         }
                         GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, mViewPort, 0);
                         GLES20.glViewport(0, 0, frame.format.width, frame.format.height);

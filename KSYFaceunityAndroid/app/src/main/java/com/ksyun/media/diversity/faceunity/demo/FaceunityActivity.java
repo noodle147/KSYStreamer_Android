@@ -669,6 +669,7 @@ public class FaceunityActivity extends Activity implements
                 case StreamerConstants.KSY_STREAMER_CAMERA_INIT_DONE:
                     Log.d(TAG, "KSY_STREAMER_CAMERA_INIT_DONE");
                     setCameraAntiBanding50Hz();
+                    updateFaceunitParams();
                     if (mAutoStart) {
                         startStream();
                     }
@@ -862,6 +863,13 @@ public class FaceunityActivity extends Activity implements
     private void onSwitchCamera() {
         mStreamer.switchCamera();
         mCameraHintView.hideAll();
+
+        boolean isFrontCamera = !mStreamer.isFrontCamera();
+        if (isFrontCamera) {
+            mImgFaceunityFilter.setMirror(true);
+        } else {
+            mImgFaceunityFilter.setMirror(false);
+        }
     }
 
     private void onFlashClick() {
