@@ -1,6 +1,6 @@
 = 金山云画中画版本使用说明
 
-* 基于KSYStreamerSDK实现画中画相关的功能，需要KSYStreamerSDK v4.0.3及以上版本。
+* 基于KSYStreamerSDK实现画中画相关的功能。
 * 该功能允许用户以背景图片作为最底层背景，视频作为第二层背景，可设置位置、大小的摄像头内容作为最上层来预览、推流。
 * 其中，最底层的背景图片以crop_fit的方式占满屏幕，第二层的视频则进行保持比例的缩放，最上层摄像头内容可以动态调整位置及大小。
 * 支持的播放格式可参看: https://github.com/ksvc/KSYMediaPlayer_Android
@@ -16,7 +16,7 @@ image::https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/imag
 
 == 工程代码结构
 
-当前工程依赖于KSYStreamerSDK，需要自行下载 https://github.com/ksvc/KSYStreamer_Android[KSYStreamerSDK] v4.0.3以上版本的libs目录，放在当前工程的app/目录下。
+当前工程依赖于KSYStreamerSDK，相关依赖已在gradle文件中声明。
 
 画中画的包名为com.ksyun.media.diversity.pipstreamer, 包含以下内容：
 
@@ -36,7 +36,6 @@ image::https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/imag
 [source, java]
 ----
 // 配置视频播放器
-mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
 mStreamer.getMediaPlayerCapture().getMediaPlayer()
         .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
     @Override
@@ -57,6 +56,8 @@ mStreamer.getMediaPlayerCapture().getMediaPlayer()
 mStreamer.showBgPicture(this, mBgPicPath);
 // 显示视频背景层
 mStreamer.showBgVideo(mPipPath);
+// 设置画中画音量
+mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
 // 配置摄像头内容悬浮窗的位置及大小
 mStreamer.setCameraPreviewRect(0.65f, 0.f, 0.35f, 0.3f);
 
