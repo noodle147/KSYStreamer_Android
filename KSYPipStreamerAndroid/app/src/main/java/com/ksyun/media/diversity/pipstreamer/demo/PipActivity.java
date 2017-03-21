@@ -262,9 +262,6 @@ public class PipActivity extends Activity implements
         super.onResume();
         startCameraPreviewWithPermCheck();
         mStreamer.onResume();
-        if (mStreamer.isRecording() && !mAudioOnlyCheckBox.isChecked()) {
-            mStreamer.setAudioOnly(false);
-        }
         if (mPipMode) {
             mStreamer.getMediaPlayerCapture().getMediaPlayer().start();
             mStreamer.getPictureCapture().start(this, mBgPicPath);
@@ -279,9 +276,6 @@ public class PipActivity extends Activity implements
         super.onPause();
         mStreamer.onPause();
         mStreamer.stopCameraPreview();
-        if (mStreamer.isRecording() && !mAudioOnlyCheckBox.isChecked()) {
-            mStreamer.setAudioOnly(true);
-        }
         if (mPipMode) {
             mStreamer.getMediaPlayerCapture().getMediaPlayer().pause();
             mStreamer.getPictureCapture().stop();
@@ -383,7 +377,6 @@ public class PipActivity extends Activity implements
             return;
         }
         mPipMode = true;
-        mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
         mStreamer.getMediaPlayerCapture().getMediaPlayer()
                 .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
             @Override
@@ -402,6 +395,7 @@ public class PipActivity extends Activity implements
                 });
         mStreamer.showBgPicture(this, mBgPicPath);
         mStreamer.showBgVideo(mPipPath);
+        mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
         mStreamer.setCameraPreviewRect(0.65f, 0.f, 0.35f, 0.3f);
 
         // disable touch focus

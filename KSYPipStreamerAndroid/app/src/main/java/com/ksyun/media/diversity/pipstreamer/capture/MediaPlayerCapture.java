@@ -62,6 +62,7 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
         mAudioBufFormat = null;
         getMediaPlayer();
         mMediaPlayer.reset();
+        mMediaPlayer.shouldAutoPlay(false);
         mMediaPlayer.setOnAudioPCMAvailableListener(mOnAudioPCMListener);
         mMediaPlayer.setOnPreparedListener(mOnPreparedListener);
         try {
@@ -95,15 +96,6 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
         }
     }
 
-    /**
-     * Should be called in Activity.onPause
-     */
-    public void onPause() {
-        if (mMediaPlayer != null) {
-            mMediaPlayer.setSurface(null);
-        }
-    }
-
     public void release() {
         if (mMediaPlayer != null) {
             mMediaPlayer.release();
@@ -119,7 +111,6 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
             if (mSurface != null) {
                 mMediaPlayer.setSurface(mSurface);
             }
-            mMediaPlayer.start();
 
             // trig onFormatChanged event
             int w = mMediaPlayer.getVideoWidth();
@@ -131,6 +122,9 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
             }
             mImgTexFormat = new ImgTexFormat(ImgTexFormat.COLOR_EXTERNAL_OES, w, h);
             mImgTexSrcPin.onFormatChanged(mImgTexFormat);
+            mAudioBufFormat = null;
+
+            mMediaPlayer.start();
         }
     };
 
@@ -139,13 +133,15 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
         @Override
         public void onAudioPCMAvailable(IMediaPlayer iMediaPlayer, ByteBuffer byteBuffer,
                 long timestamp, int channels, int samplerate, int samplefmt) {
+            if (byteBuffer == null) {
+                return;
+            }
+
             if (mAudioBufFormat == null) {
                 mAudioBufFormat = new AudioBufFormat(samplefmt, samplerate, channels);
                 mAudioBufSrcPin.onFormatChanged(mAudioBufFormat);
             }
-            if (byteBuffer == null) {
-                return;
-            }
+
             ByteBuffer pcmBuffer = byteBuffer;
             if (!byteBuffer.isDirect()) {
                 int len = byteBuffer.limit();
@@ -195,6 +191,21 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
 
         @Override
         public void onDrawFrame() {
+        }
+
+        @Override
+        public void onReleased() {
+            if (mMediaPlayer != null) {
+                mMediaPlayer.setSurface(null);
+            }
+            if (mSurfaceTexture != null) {
+                mSurfaceTexture.release();
+                mSurfaceTexture = null;
+            }
+            if (mSurface != null) {
+                mSurface.release();
+                mSurface = null;
+            }
         }
     };
 
