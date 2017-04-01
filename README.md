@@ -39,6 +39,7 @@
 * [金山云连麦](https://github.com/ksvc/KSYRTCLive_Android)
 * [声网连麦](Agora)
 * 无人机直播
+* [多视角采集](MultiPerspective)
 
 ## 开放合作
 任何企业、个人都可以参与，提供的SDK付费、免费都可以。不限于以下的合作场景：
@@ -58,7 +59,8 @@
 1. 2017.1.6, [Faceunity动态贴纸](KSYFaceunityAndroid)上线  
 1. 2017.1.18, [涂图美颜](TuSDK)上线   
 1. 2017.1.22, [Faceunity手势识别](KSYFaceunityAndroid)上线   
-1. 2017.1.24, [商汤手势识别](KSYStickerAndroid)上线  
+1. 2017.1.24, [商汤手势识别](KSYStickerAndroid)上线
+1. 2017.4.1, [多视角采集](MultiPerspective)上线
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
