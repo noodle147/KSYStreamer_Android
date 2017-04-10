@@ -6,6 +6,12 @@
    双机位采集分为主播和第二视角两个机位进行采集，使用[金山云推流SDK](https://github.com/ksvc/KSYStreamer_Android)
    主播和第二视角数据在主播端融合后，后可预览、推流、录制。
    
+   
+ 双机位采集播放效果视频请点击以下链接：
+   
+   [![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/andoridmultiview-bilibili.jpg)](http://www.bilibili.com/video/av9530095)
+
+
 ## 二. 运行环境
    
    最低支持版本为Android 4.4
