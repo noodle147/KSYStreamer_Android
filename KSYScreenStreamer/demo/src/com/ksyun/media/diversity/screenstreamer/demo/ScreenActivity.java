@@ -89,7 +89,7 @@ import static com.ksyun.media.streamer.logstats.StatsConstant.ENCODE_TYPE;
 public class ScreenActivity extends Activity implements
         ActivityCompat.OnRequestPermissionsResultCallback {
 
-    private static final String TAG = ScreenActivity.class.getSimpleName();
+    private static final String TAG = "ScreenActivity";
 
     private final static int PERMISSION_REQUEST_RECORD_AUDIO = 2;  //推流录音权限
     private final static int PERMISSION_REQUEST_CAMERA = 1;  //悬浮窗口摄像头权限
@@ -534,11 +534,11 @@ public class ScreenActivity extends Activity implements
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
                 onBackoffClick();
-                break;
+                return true;
             default:
                 break;
         }
-        return true;
+        return super.onKeyDown(keyCode, event);
     }
 
     private int getDisplayRotation() {

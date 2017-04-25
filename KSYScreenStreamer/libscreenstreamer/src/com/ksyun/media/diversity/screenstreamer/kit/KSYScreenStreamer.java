@@ -28,6 +28,7 @@ import com.ksyun.media.streamer.util.gles.GLRender;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -45,11 +46,12 @@ import java.util.Map;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class KSYScreenStreamer {
     private static final String TAG = "KSYScreenStreamer";
-    public static final String LIBSCREENSTREAMER_VERSION_VALUE = "1.0.2.3";
+    public static final String LIBSCREENSTREAMER_VERSION_VALUE = "1.0.3.0";
     public static final int KSY_STREAMER_SCREEN_RECORD_UNSUPPORTED = -2007;
     public static final int KSY_STREAMER_SCREEN_RECORD_PERMISSION_DENIED = -2008;
 
     private Context mContext;
+    protected int mAudioCaptureType = AudioCapture.AUDIO_CAPTURE_TYPE_AUDIORECORDER;
 
     protected int mIdxCamera = 0;
     protected int mIdxWmLogo = 1;
@@ -74,6 +76,7 @@ public class KSYScreenStreamer {
     private int mAudioBitrate = StreamerConstants.DEFAULT_AUDIO_BITRATE;
     private int mAudioSampleRate = StreamerConstants.DEFAULT_AUDIO_SAMPLE_RATE;
     private int mAudioChannels = StreamerConstants.DEFAULT_AUDIO_CHANNELS;
+    protected int mAudioProfile = AVConst.PROFILE_AAC_HE;
     private boolean mEnableStreamStatModule = true;
 
     private boolean mIsRecording = false;
@@ -105,6 +108,7 @@ public class KSYScreenStreamer {
     private PublisherMgt mPublisherMgt;
 
     private Handler mMainHandler;
+    private final Object mReleaseObject = new Object();
     private Map<Integer, AudioInputBase> mAudioMixerInputs;  //其它音频输入
 
     public KSYScreenStreamer(Context context) {
@@ -134,20 +138,21 @@ public class KSYScreenStreamer {
         mWaterMarkCapture.mTimeTexSrcPin.connect(mImgTexMixer.getSinkPin(mIdxWmTime));
 
         // Audio
-        mAudioCapture = new AudioCapture();
-        mAudioResampleFilter = new AudioResampleFilter();
+        mAudioCapture = new AudioCapture(mContext);
+        mAudioCapture.setAudioCaptureType(mAudioCaptureType);
         mAudioFilterMgt = new AudioFilterMgt();
         mAudioMixer = new AudioMixer();
+        mAudioResampleFilter = new AudioResampleFilter();
         //connect audio data
-        mAudioCapture.mAudioBufSrcPin.connect(mAudioResampleFilter.getSinkPin());
-        mAudioResampleFilter.getSrcPin().connect(mAudioFilterMgt.getSinkPin());
-        mAudioFilterMgt.getSrcPin().connect(mAudioMixer.getSinkPin(0));
+        mAudioCapture.getSrcPin().connect(mAudioFilterMgt.getSinkPin());
+        mAudioFilterMgt.getSrcPin().connect(mAudioMixer.getSinkPin(mIdxAudioMic));
+        mAudioMixer.getSrcPin().connect(mAudioResampleFilter.getSinkPin());
 
         // encoder
         mVideoEncoderMgt = new VideoEncoderMgt(mScreenGLRender);
         mAudioEncoderMgt = new AudioEncoderMgt();
         mImgTexMixer.getSrcPin().connect(mVideoEncoderMgt.getImgTexSinkPin());
-        mAudioMixer.getSrcPin().connect(mAudioEncoderMgt.getSinkPin());
+        mAudioResampleFilter.getSrcPin().connect(mAudioEncoderMgt.getSinkPin());
 
         // publisher
         mRtmpPublisher = new RtmpPublisher();
@@ -271,7 +276,7 @@ public class KSYScreenStreamer {
                         if (!mAudioEncoderMgt.getEncoder().isEncoding()) {
                             mAudioEncoderMgt.getEncoder().start();
                         }
-                        ByteBuffer audioExtra = mFilePublisher.getAudioExtra();
+                        ByteBuffer audioExtra = mAudioEncoderMgt.getEncoder().getExtra();
                         if (audioExtra != null) {
                             mRtmpPublisher.setAudioExtra(audioExtra);
                         }
@@ -285,7 +290,7 @@ public class KSYScreenStreamer {
                         if (!mVideoEncoderMgt.getEncoder().isEncoding()) {
                             mVideoEncoderMgt.start();
                         }
-                        ByteBuffer videoExtra = mFilePublisher.getVideoExtra();
+                        ByteBuffer videoExtra = mVideoEncoderMgt.getEncoder().getExtra();
                         if (videoExtra != null) {
                             mRtmpPublisher.setVideoExtra(videoExtra);
                         }
@@ -370,7 +375,7 @@ public class KSYScreenStreamer {
                         if (!mAudioEncoderMgt.getEncoder().isEncoding()) {
                             mAudioEncoderMgt.getEncoder().start();
                         }
-                        ByteBuffer audioExtra = mRtmpPublisher.getAudioExtra();
+                        ByteBuffer audioExtra = mAudioEncoderMgt.getEncoder().getExtra();
                         if (audioExtra != null) {
                             mFilePublisher.setAudioExtra(audioExtra);
                         }
@@ -385,7 +390,7 @@ public class KSYScreenStreamer {
                         if (!mVideoEncoderMgt.getEncoder().isEncoding()) {
                             mVideoEncoderMgt.start();
                         }
-                        ByteBuffer videoExtra = mRtmpPublisher.getVideoExtra();
+                        ByteBuffer videoExtra = mVideoEncoderMgt.getEncoder().getExtra();
                         if (videoExtra != null) {
                             mFilePublisher.setVideoExtra(videoExtra);
                         }
@@ -409,6 +414,9 @@ public class KSYScreenStreamer {
                     switch (err) {
                         case FilePublisher.FILE_PUBLISHER_ERROR_OPEN_FAILED:
                             status = StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_OPEN_FAILED;
+                            break;
+                        case FilePublisher.FILE_PUBLISHER_FORMAT_NOT_SUPPORTED:
+                            status = StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_FORMAT_NOT_SUPPORTED;
                             break;
                         case FilePublisher.FILE_PUBLISHER_ERROR_WRITE_FAILED:
                             status = StreamerConstants.KSY_STREAMER_FILE_PUBLISHER_WRITE_FAILED;
@@ -495,11 +503,11 @@ public class KSYScreenStreamer {
      *
      * @param width  offscreen width
      * @param height offscreen height
-     * @throws IllegalArgumentException
      */
-    public void setOffscreenPreview(int width, int height) throws IllegalArgumentException {
+    public void setOffscreenPreview(int width, int height) {
         if (width <= 0 || height <= 0) {
-            throw new IllegalArgumentException("Invalid offscreen resolution");
+            Log.e(TAG, "Invalid offscreen resolution " + width + "x" + height);
+            return;
         }
         mOffScreenWidth = width;
         mOffScreenHeight = height;
@@ -650,11 +658,11 @@ public class KSYScreenStreamer {
         if (width < 0 || height < 0 || (width == 0 && height == 0)) {
             throw new IllegalArgumentException("Invalid resolution");
         }
-        Log.e(TAG, "setTargetResolution: " + width + "*" + height);
+        Log.d(TAG, "setTargetResolution: " + width + "*" + height);
         mTargetWidth = width;
         mTargetHeight = height;
         calResolution();
-        Log.e(TAG, "setTargetResolution: " + mTargetWidth + "*" + mTargetHeight);
+        Log.d(TAG, "setTargetResolution: " + mTargetWidth + "*" + mTargetHeight);
         mImgTexScaleFilter.setTargetSize(mTargetWidth, mTargetHeight);
         mImgTexMixer.setTargetSize(mTargetWidth, mTargetHeight);
         mVideoEncoderMgt.setImgBufTargetSize(mTargetWidth, mTargetHeight);
@@ -663,8 +671,7 @@ public class KSYScreenStreamer {
     /**
      * Set streaming resolution index.<br/>
      * <p>
-     * The set resolution would take effect on next
-     * {@link #startStream()} call.
+     * The set resolution would take effect immediately if streaming started.<br/>
      *
      * @param idx Resolution index.<br/>
      * @throws IllegalArgumentException
@@ -707,8 +714,7 @@ public class KSYScreenStreamer {
     /**
      * Set streaming fps.<br/>
      * <p>
-     * The set fps would take effect on next
-     * {@link #startStream()} call.<br/>
+     * The set fps would take effect immediately if streaming started.<br/>
      * <p>
      * If actual preview fps is larger than set value,
      * the extra frames will be dropped before encoding,
@@ -868,7 +874,11 @@ public class KSYScreenStreamer {
      * @see AVConst#CODEC_ID_AVC
      * @see AVConst#CODEC_ID_HEVC
      */
-    public void setVideoCodecId(int codecId) {
+    public void setVideoCodecId(int codecId) throws IllegalArgumentException {
+        if (codecId != AVConst.CODEC_ID_AVC &&
+                codecId != AVConst.CODEC_ID_HEVC) {
+            throw new IllegalArgumentException("input video codecid error");
+        }
         mVideoCodecId = codecId;
     }
 
@@ -989,6 +999,30 @@ public class KSYScreenStreamer {
     }
 
     /**
+     * Set audio encode profile.
+     *
+     * @param profile profile to set.
+     * @see AVConst#PROFILE_AAC_LOW
+     * @see AVConst#PROFILE_AAC_HE
+     * @see AVConst#PROFILE_AAC_HE_V2
+     */
+    public void setAudioEncodeProfile(int profile) {
+        mAudioProfile = profile;
+    }
+
+    /**
+     * Get audio encode profile.
+     *
+     * @return current audio encode profile
+     * @see AVConst#PROFILE_AAC_LOW
+     * @see AVConst#PROFILE_AAC_HE
+     * @see AVConst#PROFILE_AAC_HE_V2
+     */
+    public int getAudioEncodeProfile() {
+        return mAudioProfile;
+    }
+
+    /**
      * get audio bitrate in bps.
      *
      * @return audio bitrate in bps
@@ -1084,8 +1118,9 @@ public class KSYScreenStreamer {
         videoEncodeFormat.setProfile(mEncodeProfile);
         mVideoEncoderMgt.setEncodeFormat(videoEncodeFormat);
 
-        AudioEncodeFormat audioEncodeFormat = new AudioEncodeFormat(AudioEncodeFormat.MIME_AAC,
+        AudioEncodeFormat audioEncodeFormat = new AudioEncodeFormat(AVConst.CODEC_ID_AAC,
                 AVConst.AV_SAMPLE_FMT_S16, mAudioSampleRate, mAudioChannels, mAudioBitrate);
+        audioEncodeFormat.setProfile(mAudioProfile);
         mAudioEncoderMgt.setEncodeFormat(audioEncodeFormat);
 
         RtmpPublisher.BwEstConfig bwEstConfig = new RtmpPublisher.BwEstConfig();
@@ -1314,7 +1349,7 @@ public class KSYScreenStreamer {
     /**
      * Set mic volume.
      *
-     * @param volume volume in 0~1.0f.
+     * @param volume volume in 0~1.0f, greater than 1.0f also acceptable.
      */
     public void setVoiceVolume(float volume) {
         mAudioMixer.setInputVolume(mIdxAudioMic, volume);
@@ -1323,7 +1358,7 @@ public class KSYScreenStreamer {
     /**
      * get mic volume
      *
-     * @return volume in 0~1.0f.
+     * @return volume in 0~1.0f, also could be greater than 1.0.
      */
     public float getVoiceVolume() {
         return mAudioMixer.getInputVolume(mIdxAudioMic);
@@ -1399,7 +1434,7 @@ public class KSYScreenStreamer {
      *              width would be calculated by h and logo image radio.
      * @param h     height of logo relative to the video, between 0~1.0, if set to 0,
      *              height would be calculated by w and logo image radio.
-     * @param alpha alpha value，between 0~1.0
+     * @param alpha alpha value between 0~1.0
      */
     public void showWaterMarkLogo(String path, float x, float y, float w, float h, float alpha) {
         if (!mIsRecording) {
@@ -1411,6 +1446,26 @@ public class KSYScreenStreamer {
         mImgTexMixer.setRenderRect(mIdxWmLogo, x, y, w, h, alpha);
         mVideoEncoderMgt.getImgBufMixer().setRenderRect(1, x, y, w, h, alpha);
         mWaterMarkCapture.showLogo(mContext, path, w, h);
+    }
+
+    /**
+     * Show watermark logo both on preview and stream.
+     *
+     * @param bitmap logo bitmap, should not be recycled by caller
+     * @param x      x position for left top of logo relative to the video, between 0~1.0.
+     * @param y      y position for left top of logo relative to the video, between 0~1.0.
+     * @param w      width of logo relative to the video, between 0~1.0, if set to 0,
+     *               width would be calculated by h and logo image radio.
+     * @param h      height of logo relative to the video, between 0~1.0, if set to 0,
+     *               height would be calculated by w and logo image radio.
+     * @param alpha  alpha value between 0~1.0
+     */
+    public void showWaterMarkLogo(Bitmap bitmap, float x, float y, float w, float h, float alpha) {
+        alpha = Math.max(0.0f, alpha);
+        alpha = Math.min(alpha, 1.0f);
+        mImgTexMixer.setRenderRect(mIdxWmLogo, x, y, w, h, alpha);
+        mVideoEncoderMgt.getImgBufMixer().setRenderRect(1, x, y, w, h, alpha);
+        mWaterMarkCapture.showLogo(bitmap, w, h);
     }
 
     /**
@@ -1474,7 +1529,11 @@ public class KSYScreenStreamer {
                 mMainHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        startStream();
+                        synchronized (mReleaseObject) {
+                            if (mMainHandler != null) {
+                                startStream();
+                            }
+                        }
                     }
                 }, mAutoRestartInterval);
             }
@@ -1555,11 +1614,17 @@ public class KSYScreenStreamer {
      * Release all resources used by KSYScreenStreamer.
      */
     public void release() {
-        mScreenCapture.release();
-        mAudioCapture.release();
-        mWaterMarkCapture.release();
-        mScreenGLRender.release();
-        setOnLogEventListener(null);
+        if (mMainHandler != null) {
+            mMainHandler.removeCallbacksAndMessages(null);
+            mMainHandler = null;
+        }
+        synchronized (mReleaseObject) {
+            mWaterMarkCapture.release();
+            mScreenCapture.release();
+            mAudioCapture.release();
+            mScreenGLRender.release();
+            setOnLogEventListener(null);
+        }
     }
 
     public interface OnInfoListener {

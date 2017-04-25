@@ -13,7 +13,7 @@ import java.nio.ShortBuffer;
 
 public class DemoAudioFilter extends AudioFilterBase {
     private AudioBufFormat mAudioFormat;
-    private float mVoiceVolume = 2.0f;
+    private float mVoiceVolume = 1.5f;
 
     /**
      * audio format changed
