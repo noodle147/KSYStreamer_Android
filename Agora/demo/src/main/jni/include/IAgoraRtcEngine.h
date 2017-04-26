@@ -24,6 +24,9 @@
 #elif defined(__APPLE__)
 #define AGORA_API __attribute__((visibility("default"))) extern "C"
 #define AGORA_CALL
+#elif defined(__ANDROID__) || defined(__linux__) || defined(__linux)
+#define AGORA_API extern "C" __attribute__((visibility("default")))
+#define AGORA_CALL
 #else
 #define AGORA_API extern "C"
 #define AGORA_CALL

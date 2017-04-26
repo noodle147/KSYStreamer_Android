@@ -41,6 +41,7 @@ import android.widget.Toast;
 
 import com.ksyun.media.diversity.agorastreamer.agora.kit.KSYAgoraStreamer;
 import com.ksyun.media.player.IMediaPlayer;
+import com.ksyun.media.streamer.capture.CameraCapture;
 import com.ksyun.media.streamer.capture.camera.CameraTouchHelper;
 import com.ksyun.media.streamer.filter.audio.AudioFilterBase;
 import com.ksyun.media.streamer.filter.audio.AudioReverbFilter;
@@ -123,13 +124,13 @@ public class CameraActivity extends Activity implements
     private boolean mPrintDebugInfo = false;
     private boolean mRecording = false;
     private boolean mIsFileRecording = false;
-    private boolean isFlashOpened = false;
+    private boolean mIsFlashOpened = false;
     private boolean mIsCaling = false;
     private String mUrl;
     private String mDebugInfo = "";
     private String mBgmPath = "/sdcard/test.mp3";
     private String mLogoPath = "file:///sdcard/test.png";
-    private String mRecordUrl = "/sdcard/test.mp4";
+    private String mRecordUrl = "/sdcard/rec_test.mp4";
 
     private boolean mHWEncoderUnsupported;
     private boolean mSWEncoderUnsupported;
@@ -301,7 +302,9 @@ public class CameraActivity extends Activity implements
                             mIsLandscape = (rotation % 180) != 0;
                             mStreamer.setRotateDegrees(rotation);
                             hideWaterMark();
-                            showWaterMark();
+                            if (mWaterMarkCheckBox.isChecked()) {
+                                showWaterMark();
+                            }
                             mLastRotation = rotation;
                         }
                     }
@@ -320,16 +323,15 @@ public class CameraActivity extends Activity implements
             mPrintDebugInfo = bundle.getBoolean(SHOW_DEBUGINFO, false);
         }
         mStreamer.setDisplayPreview(mCameraPreviewView);
-        //if (mIsLandscape) {
-        //    mStreamer.setOffscreenPreview(1280, 720);
-        //} else {
-        //    mStreamer.setOffscreenPreview(720, 1280);
-        //}
-        //断网等异常case触发自动重练
-        mStreamer.setEnableAutoRestart(true, 3000);
+        mStreamer.setEnableRepeatLastFrame(false);  // disable repeat last frame in background
+        mStreamer.setEnableAutoRestart(true, 3000); // enable auto restart
+        mStreamer.setCameraFacing(CameraCapture.FACING_FRONT);
         mStreamer.setFrontCameraMirror(mFrontMirrorCheckBox.isChecked());
         mStreamer.setMuteAudio(mMuteCheckBox.isChecked());
         mStreamer.setEnableAudioPreview(mAudioPreviewCheckBox.isChecked());
+        if (mStreamer.isAudioPreviewing() != mAudioPreviewCheckBox.isChecked()) {
+            mAudioPreviewCheckBox.setChecked(mStreamer.isAudioPreviewing());
+        }
         mStreamer.setOnInfoListener(mOnInfoListener);
         mStreamer.setOnErrorListener(mOnErrorListener);
         mStreamer.setOnLogEventListener(mOnLogEventListener);
@@ -362,6 +364,11 @@ public class CameraActivity extends Activity implements
         mCameraPreviewView.setOnTouchListener(cameraTouchHelper);
         // set CameraHintView to show focus rect and zoom ratio
         cameraTouchHelper.setCameraHintView(mCameraHintView);
+
+        startCameraPreviewWithPermCheck();
+        if (mWaterMarkCheckBox.isChecked()) {
+            showWaterMark();
+        }
     }
 
     private void initBeautyUI() {
@@ -391,7 +398,7 @@ public class CameraActivity extends Activity implements
                     mStreamer.getImgTexFilterMgt().setFilter(
                             new DemoFilter(mStreamer.getGLRender()));
                 } else if (position == 8) {
-                    List<ImgTexFilter> groupFilter = new LinkedList<>();
+                    List<ImgFilterBase> groupFilter = new LinkedList<>();
                     groupFilter.add(new DemoFilter2(mStreamer.getGLRender()));
                     groupFilter.add(new DemoFilter3(mStreamer.getGLRender()));
                     groupFilter.add(new DemoFilter4(mStreamer.getGLRender()));
@@ -486,12 +493,8 @@ public class CameraActivity extends Activity implements
                 mOrientationEventListener.canDetectOrientation()) {
             mOrientationEventListener.enable();
         }
-        startCameraPreviewWithPermCheck();
+        mStreamer.setDisplayPreview(mCameraPreviewView);
         mStreamer.onResume();
-        mStreamer.setUseDummyAudioCapture(false);
-        if (mWaterMarkCheckBox.isChecked()) {
-            showWaterMark();
-        }
         mCameraHintView.hideAll();
     }
 
@@ -502,9 +505,9 @@ public class CameraActivity extends Activity implements
             mOrientationEventListener.disable();
         }
         mStreamer.onPause();
-        mStreamer.setUseDummyAudioCapture(true);
-        mStreamer.stopCameraPreview();
-        hideWaterMark();
+        // setOffscreenPreview to enable camera capture in background
+        mStreamer.setOffscreenPreview(mStreamer.getPreviewWidth(),
+                mStreamer.getPreviewHeight());
     }
 
     @Override
@@ -526,11 +529,11 @@ public class CameraActivity extends Activity implements
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
                 onBackoffClick();
-                break;
+                return true;
             default:
                 break;
         }
-        return true;
+        return super.onKeyDown(keyCode, event);
     }
 
     private int getDisplayRotation() {
@@ -573,7 +576,7 @@ public class CameraActivity extends Activity implements
     }
 
     private void startRTC() {
-        if(mIsLandscape) {
+        if (mIsLandscape) {
             mStreamer.setRTCSubScreenRect(0.65f, 0.f, 0.3f, 0.35f, KSYAgoraStreamer
                     .SCALING_MODE_CENTER_CROP);
         } else {
@@ -855,8 +858,9 @@ public class CameraActivity extends Activity implements
 
     private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
         @Override
-        public short[] OnAudioRawData(short[] data, int count) {
-            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
+        public short[] OnAudioRawData(short[] data, int count, int sampleRate, int channels) {
+            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count +
+                    " sampleRate=" + sampleRate + " channels=" + channels);
             //audio pcm data
             return data;
         }
@@ -876,12 +880,12 @@ public class CameraActivity extends Activity implements
     }
 
     private void onFlashClick() {
-        if (isFlashOpened) {
+        if (mIsFlashOpened) {
             mStreamer.toggleTorch(false);
-            isFlashOpened = false;
+            mIsFlashOpened = false;
         } else {
             mStreamer.toggleTorch(true);
-            isFlashOpened = true;
+            mIsFlashOpened = true;
         }
     }
 
@@ -900,8 +904,6 @@ public class CameraActivity extends Activity implements
                     public void onClick(DialogInterface arg0, int arg1) {
                         mChronometer.stop();
                         mRecording = false;
-                        //stopStream();
-                        //stopRecord();
                         stopRTC();
                         CameraActivity.this.finish();
                     }
@@ -992,33 +994,38 @@ public class CameraActivity extends Activity implements
 
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
-            // use KSYMediaPlayer instead of KSYBgmPlayer
-            mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
-            mStreamer.getAudioPlayerCapture().getMediaPlayer()
-                    .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
+            mStreamer.getAudioPlayerCapture().setOnCompletionListener(
+                    new IMediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(IMediaPlayer iMediaPlayer) {
                             Log.d(TAG, "End of the currently playing music");
                         }
                     });
-            mStreamer.getAudioPlayerCapture().getMediaPlayer()
-                    .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
+            mStreamer.getAudioPlayerCapture().setOnErrorListener(
+                    new IMediaPlayer.OnErrorListener() {
                         @Override
                         public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
                             Log.e(TAG, "OnErrorListener, Error:" + what + ", extra:" + extra);
                             return false;
                         }
                     });
+            mStreamer.getAudioPlayerCapture().setVolume(0.4f);
             mStreamer.setEnableAudioMix(true);
             mStreamer.startBgm(mBgmPath, true);
-            mStreamer.getAudioPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
         } else {
             mStreamer.stopBgm();
         }
     }
 
     private void onAudioPreviewChecked(boolean isChecked) {
-        mStreamer.setEnableAudioPreview(isChecked);
+        if(isChecked != mStreamer.isAudioPreviewing()) {
+            // 若没有插入耳机，该接口会设置失败，因此设置完毕后需要判断一下，进行状态复归
+            mStreamer.setEnableAudioPreview(isChecked);
+            if (isChecked != mStreamer.isAudioPreviewing()) {
+                Toast.makeText(this, "设置耳返失败，您需要插入耳机", Toast.LENGTH_SHORT).show();
+                mAudioPreviewCheckBox.setChecked(mStreamer.isAudioPreviewing());
+            }
+        }
     }
 
     private void onMuteChecked(boolean isChecked) {

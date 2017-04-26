@@ -25,7 +25,7 @@ import io.agora.rtc.IRtcEngineEventHandler;
 public class KSYAgoraStreamer extends KSYStreamer {
     private static final String TAG = "KSYAgoraStreamer";
     private static final boolean DEBUG = false;
-    private static final String VERSION = "1.0.3.1";
+    private static final String VERSION = "1.0.4.0";
 
     private static final int mIdxVideoSub = 3;
     private static final int mIdxAudioRemote = 2;
@@ -44,8 +44,8 @@ public class KSYAgoraStreamer extends KSYStreamer {
     public static final int SCALING_MODE_BEST_FIT = ImgTexMixer.SCALING_MODE_BEST_FIT;
     public static final int SCALING_MODE_CENTER_CROP = ImgTexMixer.SCALING_MODE_CENTER_CROP;
 
-    private MusicIntentReceiver mMusicIntentReceiver;
-    private boolean mHeadSetConnected = false;
+    private MusicIntentReceiver mHeadSetReceiver;
+    private boolean mHeadSetPluged = false;
     private boolean mIsCalling = false;
     private boolean mHasSubConnecting = false;
 
@@ -91,9 +91,10 @@ public class KSYAgoraStreamer extends KSYStreamer {
 
     @Override
     protected void initModules() {
-        mHeadSetConnected = false;
+        mHeadSetPluged = false;
         mIsCalling = false;
         super.initModules();
+        mAudioCapture.setSampleRate(16000);
         //rtc remote image
         mMediaManager = new MediaManager(mContext);
         mRTCClient = new AgoraRTCClient(mGLRender, mMediaManager);
@@ -134,7 +135,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
 
                     case MediaManager.MediaUiHandler.FIRST_FRAME_DECODED: {
                         //收到辅播数据后，设置辅播画面为大窗口
-                        setAudioMode(mHeadSetConnected == true ?
+                        setAudioMode(mHeadSetPluged == true ?
                                 AudioManager.MODE_IN_COMMUNICATION: AudioManager.MODE_NORMAL);
                         mHasSubConnecting = true;
                         updateRTCConnect(mRTCMainScreen);
@@ -249,9 +250,9 @@ public class KSYAgoraStreamer extends KSYStreamer {
         mIsCalling = true;
 
         setAudioParams();
-        mAudioCapture.mAudioBufSrcPin.disconnect(false);
+        mAudioCapture.getSrcPin().disconnect(false);
         if (mAudioCapture.isRecordingState()) {
-            mAudioCapture.release();
+            mAudioCapture.stop();
         }
 
         //join rtc
@@ -277,7 +278,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
         mRTCClient.getRTCIO().getLocalAudioSrcPin().disconnect(false);
         mRTCClient.getRTCIO().getRemoteAudioSrcPin().disconnect(false);
         //connect audio capture
-        mAudioCapture.mAudioBufSrcPin.connect(mAudioResampleFilter.getSinkPin());
+        mAudioCapture.getSrcPin().connect(mAudioFilterMgt.getSinkPin());
     }
 
     /**
@@ -289,7 +290,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
     @Override
     public void setEnableAudioPreview(boolean enable) {
         if (mHasSubConnecting) {
-            setAudioMode(mHeadSetConnected == true ?
+            setAudioMode(mHeadSetPluged == true ?
                     AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_NORMAL);
         }
 
@@ -308,16 +309,16 @@ public class KSYAgoraStreamer extends KSYStreamer {
 
 
     private void registerHeadsetPlugReceiver() {
-        mMusicIntentReceiver = new MusicIntentReceiver();
+        mHeadSetReceiver = new MusicIntentReceiver();
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         filter.addAction(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED);
         filter.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
-        mContext.registerReceiver(mMusicIntentReceiver, filter);
+        mContext.registerReceiver(mHeadSetReceiver, filter);
     }
 
     private void unregisterHeadsetPlugReceiver() {
-        if (mMusicIntentReceiver != null) {
-            mContext.unregisterReceiver(mMusicIntentReceiver);
+        if (mHeadSetReceiver != null) {
+            mContext.unregisterReceiver(mHeadSetReceiver);
         }
     }
 
@@ -363,9 +364,9 @@ public class KSYAgoraStreamer extends KSYStreamer {
                 }
             }
 
-            mHeadSetConnected = headeSetConnected;
+            mHeadSetPluged = headeSetConnected;
             if(mHasSubConnecting) {
-                setAudioMode(mHeadSetConnected == true ?
+                setAudioMode(mHeadSetPluged == true ?
                         AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_NORMAL);
             }
         }
