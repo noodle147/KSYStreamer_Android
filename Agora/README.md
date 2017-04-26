@@ -65,8 +65,13 @@
 
 * 在[Android.mk](https://github.com/ksvc/KSYDiversityLive_Android/blob/master/Agora/demo/src/main/jni/Android.mk)中有对[libs](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/Agora/demo/libs)下面的libHDACEngine.so等的依赖，如果您修改libs目录，这里的目录也需要修改  
 
-3 集成[java](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/Agora/demo/src/main/java/com/ksyun/media/diversity/agorastreamer/agora)代码
+3 集成[java](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/Agora/demo/src/main/java/com/ksyun/media/diversity/agorastreamer/agora)代码  
 
+4 更新声网SDK  
+您可随时关注[声网的发版信息](https://docs.agora.io/cn/user_guide/communication/Agora_Native_SDK_Release_Notes.html#)，自行更新声网的SDK，SDK更新方式如下：
+* 1:下载[声网视频通话Android版SDK](https://www.agora.io/cn/news/download/)和[声网美颜组件](https://www.agora.io/cn/news/download/)
+* 2:替换对应的so和jar到[demo/libs](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/Agora/demo/libs)
+* 3:替换include下面的两个.h文件到demo的[jni/include](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/Agora/demo/src/main/jni/include)目录下面
            
 ## 五. 反馈与建议
 - 主页：[金山云](http://www.ksyun.com/)
