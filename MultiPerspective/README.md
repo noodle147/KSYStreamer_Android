@@ -11,6 +11,8 @@
    
    [![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/andoridmultiview-bilibili.jpg)](http://www.bilibili.com/video/av9530095)
 
+   [![ScreenShot](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/3rdviewandroid-bili.png)](http://www.bilibili.com/video/av10094540)
+
 
 ## 二. 运行环境
    
