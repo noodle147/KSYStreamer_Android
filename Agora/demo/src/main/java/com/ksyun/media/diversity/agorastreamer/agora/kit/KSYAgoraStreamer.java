@@ -259,7 +259,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
         mRTCClient.joinChannel(channel);
 
         //connect rtc audio
-        mRTCClient.getRTCIO().getLocalAudioSrcPin().connect(mAudioResampleFilter.getSinkPin());
+        mRTCClient.getRTCIO().getLocalAudioSrcPin().connect(mAudioFilterMgt.getSinkPin());
         mRTCClient.getRTCIO().getRemoteAudioSrcPin().connect(mAudioMixer.getSinkPin(mIdxAudioRemote));
     }
 
