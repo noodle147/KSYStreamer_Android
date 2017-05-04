@@ -1,4 +1,4 @@
-# 金山云SDK开放平台(Android)
+# 金山云多样化SDK接入(Android)
 ## 目标
 [KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)基于组件化思路，通过和多种数据处理服务商的联动，共同构建和繁荣移动直播生态链。
 
