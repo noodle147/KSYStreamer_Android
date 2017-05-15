@@ -228,7 +228,6 @@ public class ImgStickerFilter extends ImgFilterBase {
                 mBufferReady.block();
                 synchronized (mBufLock) {
                     if (mBufArray != null) {
-
                         if (mOutTexture == ImgTexFrame.NO_TEXTURE) {
                             mOutTexture = FboManager.getInstance()
                                     .getTextureAndLock(frame.format.width, frame.format.height);
@@ -337,6 +336,7 @@ public class ImgStickerFilter extends ImgFilterBase {
             mBufArray = null;
             mBufFrame = null;
             mInitialized = false;
+            isFirstSet = true;
         }
     };
 
@@ -383,6 +383,16 @@ public class ImgStickerFilter extends ImgFilterBase {
                 @Override
                 public void run() {
                     mMaterialRender.releaseGLResource();
+                    if (mOutTexture != ImgTexFrame.NO_TEXTURE) {
+                        FboManager.getInstance().unlock(mOutTexture);
+                        mOutTexture = ImgTexFrame.NO_TEXTURE;
+                    }
+                    mBufArrayWithStride = null;
+                    mBufArray = null;
+                    mBufFrame = null;
+                    mInitialized = false;
+                    mCurrentMaterial = null;
+                    isFirstSet = true;
                 }
             });
         }
@@ -531,4 +541,7 @@ public class ImgStickerFilter extends ImgFilterBase {
         }
     }
 
+    public String getVersion() {
+        return Constants.VERSION;
+    }
 }

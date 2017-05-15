@@ -3,10 +3,10 @@ package com.ksyun.media.diversity.sticker.demo;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
@@ -68,15 +68,12 @@ import com.sensetime.sensear.SenseArBroadcasterClient;
 import com.sensetime.sensear.SenseArClient;
 import com.sensetime.sensear.SenseArMaterial;
 import com.sensetime.sensear.SenseArMaterialGroupId;
+import com.sensetime.sensear.SenseArMaterialRender;
 import com.sensetime.sensear.SenseArMaterialService;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -120,7 +117,7 @@ public class StickerCameraActivity  extends Activity implements
     private Handler mMainHandler;
     private Timer mTimer;
 
-    private SenseArMaterialService mSenseArService = SenseArMaterialService.shareInstance();
+    private SenseArMaterialService mSenseArService;
     private SenseArBroadcasterClient mBroadcaster;
     private String mBroadcasterID = null;
     private SenseArMaterial mMaterial = null;
@@ -317,21 +314,9 @@ public class StickerCameraActivity  extends Activity implements
         ImageButton closeMaterialsShowBtn = (ImageButton) findViewById(R.id.close_materialsshow);
         closeMaterialsShowBtn.setOnClickListener(mObserverButton);
 
-
-        mHasAuthorized = authorized(false);
-
         mContext = this;
-
-        copyFileIfNeed(SenseArMaterialService.MODEL_FILE_NAME);
-
-        //如果license没检查通过，仍然可以使用demo，但是贴纸功能不能work
-        if (!checkLicense()) {
-            Toast.makeText(getApplicationContext(), "Check license failed", Toast.LENGTH_LONG).show();
-        }
-        //初始化SenseArMaterialRender服务
-        SenseARMaterialRenderBuilder.getInstance().initSenseARMaterialRender(getFilePath
-                (SenseArMaterialService.MODEL_FILE_NAME),mContext);
-
+        mSenseArService = SenseArMaterialService.shareInstance();
+        initAccelerometer();
 
         mStreamer = new KSYStreamer(this);
         Bundle bundle = getIntent().getExtras();
@@ -421,11 +406,11 @@ public class StickerCameraActivity  extends Activity implements
 
 
         mBroadcasterID = BROADCASTER_ID;
-        initAccelerometer();
 
         mBroadcaster = new SenseArBroadcasterClient();
         SenseArMaterialService.ConfigStatus status = mSenseArService.configureClientWithType
                 (SenseArClient.Type.Broadcaster, mBroadcaster);
+
         //设置缓存大小
         mSenseArService.setMaterialCacheSize(getApplicationContext(), 100*1024*1024);
 
@@ -447,6 +432,7 @@ public class StickerCameraActivity  extends Activity implements
         // 开始主播
         startBroadcast();
         startAccelerometer();
+        this.initMaterialsGridView();
     }
 
     @Override
@@ -469,12 +455,16 @@ public class StickerCameraActivity  extends Activity implements
     public void onDestroy() {
         super.onDestroy();
         //清空素材缓存
+        mCurrentMaterialIndex = -1;
+        mMateriallist1SelectIndex = -1;
+        mMateriallist2SelectIndex = -1;
+        mCurrentMaterialType = 0;
         SenseArMaterialService.shareInstance().clearCache(getApplicationContext());
-        SenseARMaterialRenderBuilder.getInstance().releaseSenseArMaterialRender();
         if (mMainHandler != null) {
             mMainHandler.removeCallbacksAndMessages(null);
             mMainHandler = null;
         }
+        mSenseArService.release();
         if (mTimer != null) {
             mTimer.cancel();
         }
@@ -764,10 +754,13 @@ public class StickerCameraActivity  extends Activity implements
                 .setTitle("请选择美颜滤镜")
                 .setSingleChoiceItems(
                         new String[]{"BEAUTY_SOFT", "SKIN_WHITEN", "BEAUTY_ILLUSION", "DENOISE",
-                                "BEAUTY_SMOOTH", "DEMOFILTER", "GROUP_FILTER", "STICKER"}, -1,
+                                "BEAUTY_SMOOTH", "DEMOFILTER", "GROUP_FILTER"}, -1,
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
+                                if(mImgStickerFilter != null) {
+                                    mImgStickerFilter = null;
+                                }
                                 if (which < 5) {
                                     mStreamer.getImgTexFilterMgt().setFilter(
                                             mStreamer.getGLRender(), which + 16);
@@ -843,6 +836,9 @@ public class StickerCameraActivity  extends Activity implements
                 showChooseFilter();
             }
         } else {
+            if(mImgStickerFilter != null) {
+                mImgStickerFilter = null;
+            }
             mStreamer.getImgTexFilterMgt().setFilter(mStreamer.getGLRender(),
                     ImgTexFilterMgt.KSY_FILTER_BEAUTY_DISABLE);
             mStreamer.setEnableImgBufBeauty(false);
@@ -888,40 +884,6 @@ public class StickerCameraActivity  extends Activity implements
 
     private void stopAccelerometer() {
         mAccelerometer.stop();
-    }
-
-    private boolean copyFileIfNeed(String fileName) {
-        String path = getFilePath(fileName);
-        if (path != null) {
-            File file = new File(path);
-            if (!file.exists()) {
-                //如果模型文件不存在或者当前模型文件的版本跟sdcard中的版本不一样
-                try {
-                    if (file.exists())
-                        file.delete();
-                    file.createNewFile();
-                    InputStream in = getApplicationContext().getAssets().open(fileName);
-                    if(in == null)
-                    {
-                        Log.e(TAG, "the src is not existed");
-                        return false;
-                    }
-                    OutputStream out = new FileOutputStream(file);
-                    byte[] buffer = new byte[4096];
-                    int n;
-                    while ((n = in.read(buffer)) > 0) {
-                        out.write(buffer, 0, n);
-                    }
-                    in.close();
-                    out.close();
-                    Log.e(TAG, "copy file succ");
-                } catch (IOException e) {
-                    file.delete();
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     private void saveSelectedIndex(int position) {
@@ -1208,81 +1170,6 @@ public class StickerCameraActivity  extends Activity implements
     }
 
     /**
-     * 检查activeCode合法性
-     *
-     * @return true, 成功 false,失败
-     */
-    private boolean checkLicense() {
-        StringBuilder sb = new StringBuilder();
-        InputStreamReader isr = null;
-        BufferedReader br = null;
-        // 读取license文件内容
-        try {
-            isr = new InputStreamReader(getResources().getAssets().open(LICENSE_NAME));
-            br = new BufferedReader(isr);
-            String line = null;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (isr != null) {
-                try {
-                    isr.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-
-        }
-
-
-        // license文件为空,则直接返回
-        if (sb.toString().length() == 0) {
-            Log.e("", "read license data error");
-            return false;
-        }
-
-        /**
-         * 以下逻辑为：
-         * 1. 获取本地保存的激活码
-         * 2. 如果没有则生成一个激活码
-         * 3. 如果有, 则直接调用checkActiveCode*检查激活码
-         * 4. 如果检查失败，则重新生成一个activeCode
-         * 5. 如果生成失败，则返回失败，成功则保存新的activeCode，并返回成功
-         */
-        SharedPreferences sp = getApplicationContext().getSharedPreferences(PREF_ACTIVATE_CODE_FILE, Context.MODE_PRIVATE);
-        String activateCode = sp.getString(PREF_ACTIVATE_CODE, null);
-        Integer error = new Integer(-1);
-        if (activateCode == null || !mSenseArService.checkActiveCodeWithLicenseData(activateCode, sb.toString().getBytes(), error)) {
-            Log.e("", "activeCode: " + (activateCode == null));
-            activateCode = mSenseArService.generateActiveCodeWithLicenseData(sb.toString().getBytes(), error);
-            if (activateCode != null) {
-                SharedPreferences.Editor editor = sp.edit();
-                editor.putString(PREF_ACTIVATE_CODE, activateCode);
-                editor.commit();
-                return true;
-            }
-            Log.e("", "generate license error: " + error);
-            return false;
-        }
-
-        Log.e("", "activeCode: " + activateCode);
-
-        return true;
-    }
-
-    /**
      * 停止主播
      */
     protected void stopBroadCast() {
@@ -1312,6 +1199,7 @@ public class StickerCameraActivity  extends Activity implements
             mBroadcaster.followCount = 12000;
             mBroadcaster.fansCount = 12000;
             mBroadcaster.audienceCount = 14000;
+            mBroadcaster.currentFansCount = 2000;
             mBroadcaster.type = "娱乐";
             mBroadcaster.telephone = "13600234000";
             mBroadcaster.email = "broadcasterAndroid@126.com";
@@ -1319,6 +1207,70 @@ public class StickerCameraActivity  extends Activity implements
             mBroadcaster.longitude = 116.317188f;
             mBroadcaster.postcode = "067306";
         }
+    }
+
+    /**
+     * 获取贴纸列表, 从AR服务器获取到当前热门/或者符合主播属性的贴纸列表
+     */
+    protected void startGetMaterialList() {
+        if (mMaterialList1 != null && mMaterialList2 != null &&
+                mMaterialList1.size() > 1 && mMaterialList2.size() > 1) {
+            return;
+        }
+        mMaterialList2 = new ArrayList<MaterialInfoItem>();
+        mMaterialList1 = new ArrayList<MaterialInfoItem>();
+
+        if (mNullBitmap == null) {
+            mNullBitmap = getNullEffectBitmap();
+        }
+        MaterialInfoItem nullSticker = new MaterialInfoItem(new SenseArMaterial(), mNullBitmap);
+        nullSticker.setHasDownload(true);
+        mMaterialList2.add(nullSticker);
+        mMaterialList1.add(nullSticker);
+
+        int retrytimes = 2;
+
+        mSenseArService.fetchAllGroups(new SenseArMaterialService.FetchGroupslListener() {
+            @Override
+            public void onSuccess(final List<SenseArMaterialGroupId> list) {
+                StickerCameraActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListCount = 1;
+                        fetchMaterial("AD_LIST", mMaterialList1, mListCount);
+                        mListCount = 2;
+                        fetchMaterial("SE_LIST", mMaterialList2, mListCount);
+                    }
+                });
+
+            }
+
+            @Override
+            public void onFailure(int i, String s) {
+                mSenseArService.fetchAllGroups(new SenseArMaterialService.FetchGroupslListener() {
+                    @Override
+                    public void onSuccess(final List<SenseArMaterialGroupId> list) {
+                        StickerCameraActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mListCount = 1;
+                                fetchMaterial("AD_LIST", mMaterialList1, mListCount);
+                                mListCount = 2;
+                                fetchMaterial("SE_LIST", mMaterialList2, mListCount);
+                            }
+                        });
+
+                    }
+
+                    @Override
+                    public void onFailure(int i, String s) {
+                        reportError("fetchGroups failed");
+                    }
+                });
+            }
+        });
+
+
     }
 
     private Bitmap getNullEffectBitmap() {
@@ -1404,6 +1356,13 @@ public class StickerCameraActivity  extends Activity implements
         mGridView.setAdapter(mGridViewAdapter);
         //mGridViewAdapter.setSelectIndex(mCurrentMaterialIndex);
         //mCameraDisplay.startShowSticker(mMaterial);
+        if(mCurrentMaterialType == 0){
+            mGridViewAdapter.setSelectIndex(mMateriallist1SelectIndex);
+        }else{
+            mGridViewAdapter.setSelectIndex(mMateriallist2SelectIndex);
+        }
+
+
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
@@ -1416,7 +1375,9 @@ public class StickerCameraActivity  extends Activity implements
                     mGridViewAdapter.setSelectIndex(position);
                     saveSelectedIndex(position);
                     mGridViewAdapter.notifyDataSetChanged();
-                    mImgStickerFilter.startShowSticker(null);
+                    if (mImgStickerFilter != null) {
+                        mImgStickerFilter.startShowSticker(null);
+                    }
                     closeMaterialsShowLayer();
                     return;
                 }
@@ -1522,53 +1483,45 @@ public class StickerCameraActivity  extends Activity implements
         });
     }
 
-    /**
-     * 获取贴纸列表, 从AR服务器获取到当前热门/或者符合主播属性的贴纸列表
-     */
-    protected void startGetMaterialList() {
-        if (mMaterialList1 != null && mMaterialList2 != null &&
-                mMaterialList1.size() > 1 && mMaterialList2.size() > 1) {
-            return;
-        }
-        mMaterialList2 = new ArrayList<MaterialInfoItem>();
-        mMaterialList1 = new ArrayList<MaterialInfoItem>();
-
-        if (mNullBitmap == null) {
-            mNullBitmap = getNullEffectBitmap();
-        }
-        MaterialInfoItem nullSticker = new MaterialInfoItem(new SenseArMaterial(), mNullBitmap);
-        nullSticker.setHasDownload(true);
-        mMaterialList2.add(nullSticker);
-        mMaterialList1.add(nullSticker);
-
-        mSenseArService.fetchAllGroups(new SenseArMaterialService.FetchGroupslListener() {
-            @Override
-            public void onSuccess(final List<SenseArMaterialGroupId> list) {
-//                if (list != null && list.size() > 0) {
+    private SenseArMaterialRender.SetMaterialCallback mSetMaterialCallback = new SenseArMaterialRender.SetMaterialCallback() {
+        @Override
+        public void callback(SenseArMaterialRender.RenderStatus ret) {
+            if (ret == SenseArMaterialRender.RenderStatus.RENDER_UNSUPPORTED_MATERIAL) {
                 StickerCameraActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        mListCount = 1;
-                        fetchMaterial("AD_LIST", mMaterialList1, mListCount);
-//                            if (list.size() > 0) {
-                        mListCount = 2;
-//                                fetchMaterial(list.get(0).mId, mMaterialList2, mListCount);
-                        fetchMaterial("SE_LIST", mMaterialList2, mListCount);
-//                            }
+                        Dialog alertDialog = new AlertDialog.Builder(StickerCameraActivity.this).
+                                setTitle("警告").
+                                setMessage("素材不被当前版本支持,需要升级SDK.").
+                                setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        // TODO Auto-generated method stub
+                                    }
+                                }).show();
+                        //Toast.makeText(StreamingBaseActivity.this, "", Toast.LENGTH_LONG).show();
                     }
                 });
-//                }
-
             }
-
-            @Override
-            public void onFailure(int i, String s) {
-                reportError("fetchGroups failed");
+            else if (ret == SenseArMaterialRender.RenderStatus.RENDER_MATERIAL_NOT_EXIST) {
+                StickerCameraActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StickerCameraActivity.this, "素材文件不存在", Toast.LENGTH_LONG).show();
+                    }
+                });
             }
-        });
+            else if (ret == SenseArMaterialRender.RenderStatus.RENDER_UNKNOWN) {
+                StickerCameraActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(StickerCameraActivity.this, "设置素材未知错误", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }
+    };
 
-
-    }
 
     private void initMaterialDetailInfoLayout() {
         mMaterialDetailInfoLayout = (RelativeLayout) findViewById(R.id.material_detailinfo_layout);
@@ -1672,11 +1625,19 @@ public class StickerCameraActivity  extends Activity implements
     }
 
     private void closeMaterialsShowLayer() {
-        mMaterialsListLayout.setVisibility(View.VISIBLE);
-        mMaterialItemIntroLayout.setVisibility(View.GONE);
-        mQuestionBackBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.ques));
-        mQuestionBackBtn.setTag("1");
-        mShowMaterialsLayout.setVisibility(View.GONE);
+        if(mMaterialsListLayout != null) {
+            mMaterialsListLayout.setVisibility(View.VISIBLE);
+        }
+        if(mMaterialItemIntroLayout != null) {
+            mMaterialItemIntroLayout.setVisibility(View.GONE);
+        }
+        if(mQuestionBackBtn != null) {
+            mQuestionBackBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.ques));
+            mQuestionBackBtn.setTag("1");
+        }
+        if(mShowMaterialsLayout != null) {
+            mShowMaterialsLayout.setVisibility(View.GONE);
+        }
         //mMaterialList2.clear();
         //mMaterialList1.clear();
         if (mGridViewAdapter != null) {

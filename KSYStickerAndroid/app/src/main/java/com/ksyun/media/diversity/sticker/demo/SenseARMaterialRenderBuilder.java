@@ -6,7 +6,6 @@ import android.util.Log;
 
 import com.sensetime.sensear.SenseArMaterialRender;
 
-
 /**
  * Created by sensetime on 16-12-26.
  */
@@ -43,13 +42,9 @@ public class SenseARMaterialRenderBuilder {
             //Log.d(TAG, "init render start modelpath : " + params[0]);
             long startTime = System.currentTimeMillis();
             mSenseArMaterialRender = SenseArMaterialRender.instanceWithModelPath(mContext,
-                    SenseArMaterialRender.ST_SENSEAR_ENABLE_HUMAN_ACTION,
-            //| SenseArMaterialRender
-              //      .ST_SENSEAR_ENABLE_BEAUTIFY,
+                    SenseArMaterialRender.ST_SENSEAR_ENABLE_HUMAN_ACTION | SenseArMaterialRender.ST_SENSEAR_ENABLE_BEAUTIFY,
                     params[0]);
-            if(mSenseArMaterialRender != null) {
-                Log.d("init", "SenseArMaterialRender cost: " + (System.currentTimeMillis() - startTime));
-            }
+            Log.d("init", "SenseArMaterialRender cost: "+(System.currentTimeMillis() - startTime));
             return null;
         }
 

@@ -20,4 +20,5 @@ public class Constants {
     public static String COMMISSION_KEY="commission";
     public static String REPORT_DATA="reportdata";
     public final static String SERVER_KEY_PREF = "server_key_pref";
+    public final static String VERSION = "1.3.1";
 }
