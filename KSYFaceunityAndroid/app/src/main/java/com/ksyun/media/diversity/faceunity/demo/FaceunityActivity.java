@@ -378,7 +378,7 @@ public class FaceunityActivity extends Activity implements
         // set CameraHintView to show focus rect and zoom ratio
         cameraTouchHelper.setCameraHintView(mCameraHintView);
 
-        initFaceunity();
+        //initFaceunity();
     }
 
     private void initBeautyUI() {
@@ -843,22 +843,22 @@ public class FaceunityActivity extends Activity implements
                 }
             };
 
-    private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
-        @Override
-        public short[] OnAudioRawData(short[] data, int count) {
-            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
-            //audio pcm data
-            return data;
-        }
-    };
-
-    private OnPreviewFrameListener mOnPreviewFrameListener = new OnPreviewFrameListener() {
-        @Override
-        public void onPreviewFrame(byte[] data, int width, int height, boolean isRecording) {
-            Log.d(TAG, "onPreviewFrame data.length=" + data.length + " " +
-                    width + "x" + height + " mRecording=" + isRecording);
-        }
-    };
+//    private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
+//        @Override
+//        public short[] OnAudioRawData(short[] data, int count) {
+//            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
+//            //audio pcm data
+//            return data;
+//        }
+//    };
+//
+//    private OnPreviewFrameListener mOnPreviewFrameListener = new OnPreviewFrameListener() {
+//        @Override
+//        public void onPreviewFrame(byte[] data, int width, int height, boolean isRecording) {
+//            Log.d(TAG, "onPreviewFrame data.length=" + data.length + " " +
+//                    width + "x" + height + " mRecording=" + isRecording);
+//        }
+//    };
 
     private void onSwitchCamera() {
         mStreamer.switchCamera();
@@ -979,7 +979,7 @@ public class FaceunityActivity extends Activity implements
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
             // use KSYMediaPlayer instead of KSYBgmPlayer
-            mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
+            //mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
             mStreamer.getAudioPlayerCapture().getMediaPlayer()
                     .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
                         @Override
@@ -1194,6 +1194,7 @@ public class FaceunityActivity extends Activity implements
         mFaceunityBeautySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                initFaceunity();
                 TextView textView = ((TextView) parent.getChildAt(0));
                 if (textView != null) {
                     textView.setTextColor(getResources().getColor(R.color.font_color_35));
@@ -1352,20 +1353,22 @@ public class FaceunityActivity extends Activity implements
         if (mImgFaceunityFilter == null) {
             //add faceunity filter
             mImgFaceunityFilter = new ImgFaceunityFilter(this, mStreamer.getGLRender());
-            mStreamer.getImgTexFilterMgt().setExtraFilter(mImgFaceunityFilter);
+            mStreamer.getImgTexFilterMgt().setFilter(mImgFaceunityFilter);
         }
 
         updateFaceunitParams();
     }
 
     private void updateFaceunitParams() {
-        mImgFaceunityFilter.setTargetSize(mStreamer.getTargetWidth(),
-                mStreamer.getTargetHeight());
+        if(mImgFaceunityFilter != null) {
+            mImgFaceunityFilter.setTargetSize(mStreamer.getTargetWidth(),
+                    mStreamer.getTargetHeight());
 
-        if (mStreamer.isFrontCamera()) {
-            mImgFaceunityFilter.setMirror(true);
-        } else {
-            mImgFaceunityFilter.setMirror(false);
+            if (mStreamer.isFrontCamera()) {
+                mImgFaceunityFilter.setMirror(true);
+            } else {
+                mImgFaceunityFilter.setMirror(false);
+            }
         }
     }
 }

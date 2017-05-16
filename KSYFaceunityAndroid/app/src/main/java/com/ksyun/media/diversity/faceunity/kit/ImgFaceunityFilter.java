@@ -28,7 +28,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class ImgFaceunityFilter extends ImgFilterBase {
     private final static String TAG = "ImgFaceunityFilter";
 
-    private final static String VERSION = "1.0.2.1";
+    private final static String VERSION = "1.0.3.0";
 
     private final static String PROP_TYPE_BEAGLEDOG = "Faceunity/BeagleDog.mp3";
     private final static String PROP_TYPE_COLORGROWN = "Faceunity/ColorCrown.mp3";
@@ -123,7 +123,6 @@ public class ImgFaceunityFilter extends ImgFilterBase {
         mTexSinkPin = new FaceunityTexSinkPin();
         mBufSinkPin = new FaceunityBufSinkPin();
         mSrcPin = new SrcPin<>();
-        mGLRender.addListener(mGLRenderListener);
 
         mImgYFlipFilter = new ImgYFlipFilter(mGLRender);
         mImgYFlipFilter.getSrcPin().connect(mTexSinkPin);
@@ -180,6 +179,7 @@ public class ImgFaceunityFilter extends ImgFilterBase {
     public void setTargetSize(int targetWith, int targetHeight) {
         mFaceunityScale.setTargetSize(targetWith, targetHeight);
     }
+
     /**
      * 0~12 使用贴纸，其它不使用贴纸
      *
@@ -279,58 +279,27 @@ public class ImgFaceunityFilter extends ImgFilterBase {
             mOutTexture = ImgTexFrame.NO_TEXTURE;
         }
         mInputBufArray = null;
-        mGLRender.removeListener(mGLRenderListener);
     }
 
 
     private void onGLContextReady() {
-        mGLRender.queueDrawFrameAppends(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    InputStream is = mContext.getAssets().open("Faceunity/v3.mp3");
-                    byte[] v3data = new byte[is.available()];
-                    is.read(v3data);
-                    is.close();
-                    /**
-                     * fuSetup parameter explanation
-                     * @param v3data
-                     * @param null, old parameter, consider removed in the future
-                     * @param authpack.A(), auth key byte array content
-                     **/
-                    faceunity.fuSetup(v3data, null, authpack.A());
-                    mInited = true;
-                } catch (IOException e) {
-                    Log.e(TAG, "IOException: " + e);
-                }
-            }
-        });
+        try {
+            InputStream is = mContext.getAssets().open("Faceunity/v3.mp3");
+            byte[] v3data = new byte[is.available()];
+            is.read(v3data);
+            is.close();
+            /**
+             * fuSetup parameter explanation
+             * @param v3data
+             * @param null, old parameter, consider removed in the future
+             * @param authpack.A(), auth key byte array content
+             **/
+            faceunity.fuSetup(v3data, null, authpack.A());
+            mInited = true;
+        } catch (IOException e) {
+            Log.e(TAG, "IOException: " + e);
+        }
     }
-
-    private GLRender.GLRenderListener mGLRenderListener = new GLRender.GLRenderListener() {
-        @Override
-        public void onReady() {
-            mInited = false;
-            mOutTexture = ImgTexFrame.NO_TEXTURE;
-            ImgFaceunityFilter.this.onGLContextReady();
-        }
-
-        @Override
-        public void onSizeChanged(int width, int height) {
-            //do nothing
-        }
-
-        @Override
-        public void onDrawFrame() {
-            //do nothing
-        }
-
-        @Override
-        public void onReleased() {
-            faceunity.fuOnDeviceLost();
-            mFrameID = 0;
-        }
-    };
 
     /**
      * 接收视频数据并添加faceunity贴纸或者美颜
@@ -338,6 +307,11 @@ public class ImgFaceunityFilter extends ImgFilterBase {
     private class FaceunityTexSinkPin extends SinkPin<ImgTexFrame> {
         @Override
         public void onFormatChanged(Object format) {
+            if (!mInited) {
+                mOutTexture = ImgTexFrame.NO_TEXTURE;
+                ImgFaceunityFilter.this.onGLContextReady();
+                mInited = true;
+            }
             mSrcPin.onFormatChanged(format);
         }
 
@@ -420,6 +394,9 @@ public class ImgFaceunityFilter extends ImgFilterBase {
         @Override
         public void onDisconnect(boolean recursive) {
             if (recursive) {
+                faceunity.fuOnDeviceLost();
+                mFrameID = 0;
+                mInited = false;
                 release();
             }
         }
@@ -448,6 +425,7 @@ public class ImgFaceunityFilter extends ImgFilterBase {
         public void onDisconnect(boolean recursive) {
 
         }
+
     }
 
     private void createPropItem() {
