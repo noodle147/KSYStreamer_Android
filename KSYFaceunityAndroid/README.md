@@ -32,7 +32,7 @@ Faceunity的系统通过标准TLS证书进行鉴权。客户在使用时先从�
 关于鉴权授权问题，请email：support@faceunity.com
 
 ### 1.2 Faceunity版本更新
-Demo集成的Faceunity可能并不是最新的版本，如果您希望使用最新的版本，请移步https://github.com/Faceunity/FULiveDemoDroid  
+Demo集成的Faceunity可能并不是最新的版本，如果您希望使用最新的版本，请移步https://github.com/Faceunity/FULiveDemoDroid     
 您可以直接下载jar和so替换libs目录下面的jar和so，若替换有问题，可随时联系我们。
 
 ## 2.反馈与建议
