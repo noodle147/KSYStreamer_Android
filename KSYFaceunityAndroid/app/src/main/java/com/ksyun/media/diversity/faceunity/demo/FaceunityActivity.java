@@ -377,8 +377,6 @@ public class FaceunityActivity extends Activity implements
         mCameraPreviewView.setOnTouchListener(cameraTouchHelper);
         // set CameraHintView to show focus rect and zoom ratio
         cameraTouchHelper.setCameraHintView(mCameraHintView);
-
-        //initFaceunity();
     }
 
     private void initBeautyUI() {
@@ -843,23 +841,6 @@ public class FaceunityActivity extends Activity implements
                 }
             };
 
-//    private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
-//        @Override
-//        public short[] OnAudioRawData(short[] data, int count) {
-//            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
-//            //audio pcm data
-//            return data;
-//        }
-//    };
-//
-//    private OnPreviewFrameListener mOnPreviewFrameListener = new OnPreviewFrameListener() {
-//        @Override
-//        public void onPreviewFrame(byte[] data, int width, int height, boolean isRecording) {
-//            Log.d(TAG, "onPreviewFrame data.length=" + data.length + " " +
-//                    width + "x" + height + " mRecording=" + isRecording);
-//        }
-//    };
-
     private void onSwitchCamera() {
         mStreamer.switchCamera();
         mCameraHintView.hideAll();
@@ -979,7 +960,6 @@ public class FaceunityActivity extends Activity implements
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
             // use KSYMediaPlayer instead of KSYBgmPlayer
-            //mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
             mStreamer.getAudioPlayerCapture().getMediaPlayer()
                     .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
                         @Override
