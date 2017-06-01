@@ -28,7 +28,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class ImgFaceunityFilter extends ImgFilterBase {
     private final static String TAG = "ImgFaceunityFilter";
 
-    private final static String VERSION = "1.0.3.0";
+    private final static String VERSION = "1.0.4.0";
 
     private final static String PROP_TYPE_BEAGLEDOG = "Faceunity/BeagleDog.mp3";
     private final static String PROP_TYPE_COLORGROWN = "Faceunity/ColorCrown.mp3";
