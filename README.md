@@ -36,7 +36,6 @@
 * [Faceunity动态贴纸](KSYFaceunityAndroid)
 * [涂图美颜](TuSDK)  
 * [画中画](KSYPipStreamerAndroid)
-* [金山云连麦](https://github.com/ksvc/KSYRTCLive_Android)
 * [声网连麦](Agora)
 * 无人机直播
 * [多视角采集](MultiPerspective)
@@ -50,7 +49,6 @@
 
 ## 大事记
 
-1. 2016.10.10，[连麦稳定版本](https://github.com/ksvc/KSYRTCLive_Android)开放测试
 1. 2016.11.04，[录屏稳定版本](KSYScreenStreamer)上线
 1. 2016.11.11，[专业相机推流](eyemore)提供接入
 1. 2016.11.24，[画中画](KSYPipStreamerAndroid)上线
