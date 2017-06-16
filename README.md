@@ -59,6 +59,7 @@
 1. 2017.1.22, [Faceunity手势识别](KSYFaceunityAndroid)上线   
 1. 2017.1.24, [商汤手势识别](KSYStickerAndroid)上线
 1. 2017.4.1, [多视角采集](MultiPerspective)上线
+1. 2017.4.24 [短视频编辑SDK](https://github.com/ksvc/KSYMediaEditorKit_Android)上线
 
 ## 反馈与建议
 - 主页：[金山云](http://v.ksyun.com)
