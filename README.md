@@ -26,7 +26,7 @@
 * 第三方视频输入
 
 ## 功能
-[KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)将提供以下功能。同时也欢迎大家提新的功能需求。
+[KSYDiversityLive](https://github.com/ksvc/KSYDiversityLive_Android)提供以下功能。同时也欢迎大家提新的功能需求。
 * [游戏录屏直播](KSYScreenStreamer)
 * [应用内录屏](KSYScreenStreamer)
 * [第三方相机接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
