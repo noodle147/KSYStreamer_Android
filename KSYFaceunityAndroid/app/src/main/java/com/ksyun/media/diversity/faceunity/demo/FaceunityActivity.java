@@ -1184,12 +1184,15 @@ public class FaceunityActivity extends Activity implements
                     if (mImgFaceunityFilter == null) {
                         return;
                     }
+                    mStreamer.getCameraCapture().mImgBufSrcPin.disconnect(mImgFaceunityFilter.getBufSinkPin(),
+                            false);
                     mImgFaceunityFilter.setBeautyType(-1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyCheekLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyEyeLayout.setVisibility(View.INVISIBLE);
                 } else {
+                    mStreamer.getCameraCapture().mImgBufSrcPin.connect(mImgFaceunityFilter.getBufSinkPin());
                     mImgFaceunityFilter.setBeautyType(position - 1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.VISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.VISIBLE);
@@ -1333,7 +1336,7 @@ public class FaceunityActivity extends Activity implements
         if (mImgFaceunityFilter == null) {
             //add faceunity filter
             mImgFaceunityFilter = new ImgFaceunityFilter(this, mStreamer.getGLRender());
-            mStreamer.getImgTexFilterMgt().setFilter(mImgFaceunityFilter);
+            mStreamer.getImgTexFilterMgt().setExtraFilter(mImgFaceunityFilter);
         }
 
         updateFaceunitParams();
