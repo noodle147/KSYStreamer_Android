@@ -397,7 +397,6 @@ public class PipActivity extends Activity implements
         mStreamer.showBgVideo(mPipPath);
         mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
         mStreamer.setCameraPreviewRect(0.65f, 0.f, 0.35f, 0.3f);
-
         // disable touch focus
         mCameraTouchHelper.setEnableTouchFocus(false);
     }
@@ -575,9 +574,8 @@ public class PipActivity extends Activity implements
 
     private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
         @Override
-        public short[] OnAudioRawData(short[] data, int count) {
+        public short[] OnAudioRawData(short[] data, int count, int sampleRate, int channels) {
             Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
-            //audio pcm data
             return data;
         }
     };
@@ -731,7 +729,7 @@ public class PipActivity extends Activity implements
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
             // use KSYMediaPlayer instead of KSYBgmPlayer
-            mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
+            //mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
             mStreamer.getAudioPlayerCapture().getMediaPlayer()
                     .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
                         @Override

@@ -1,6 +1,7 @@
 package com.ksyun.media.diversity.pipstreamer.kit;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.ksyun.media.diversity.pipstreamer.capture.MediaPlayerCapture;
 import com.ksyun.media.diversity.pipstreamer.capture.PictureCapture;
@@ -41,6 +42,14 @@ public class KSYPipStreamer extends KSYStreamer {
         mMediaPlayerCapture = new MediaPlayerCapture(mContext, getGLRender());
 
         // pip connection
+
+        mPictureCapture.getSrcPin().connect(getImgTexPreviewMixer().getSinkPin(IDX_BG_IMG));
+        mMediaPlayerCapture.mImgTexSrcPin.connect(getImgTexPreviewMixer().getSinkPin(IDX_BG_VIDEO));
+        getImgTexPreviewMixer().setScalingMode(IDX_BG_IMG, ImgTexMixer.SCALING_MODE_CENTER_CROP);
+        getImgTexPreviewMixer().setScalingMode(IDX_BG_VIDEO, ImgTexMixer.SCALING_MODE_BEST_FIT);
+        getImgTexPreviewMixer().setScalingMode(mIdxCamera, ImgTexMixer.SCALING_MODE_CENTER_CROP);
+        getImgTexPreviewMixer().setMainSinkPinIndex(mIdxCamera);
+
         mPictureCapture.getSrcPin().connect(getImgTexMixer().getSinkPin(IDX_BG_IMG));
         mMediaPlayerCapture.mImgTexSrcPin.connect(getImgTexMixer().getSinkPin(IDX_BG_VIDEO));
         mMediaPlayerCapture.mAudioBufSrcPin.connect(getAudioMixer().getSinkPin(IDX_AUDIO_PIP));
@@ -112,6 +121,7 @@ public class KSYPipStreamer extends KSYStreamer {
     }
 
     public void setCameraPreviewRect(float x, float y, float w, float h) {
+        getImgTexPreviewMixer().setRenderRect(mIdxCamera, x, y, w, h, 1.0f);
         getImgTexMixer().setRenderRect(mIdxCamera, x, y, w, h, 1.0f);
     }
 }
