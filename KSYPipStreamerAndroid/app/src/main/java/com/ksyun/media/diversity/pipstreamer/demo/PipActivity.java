@@ -729,7 +729,6 @@ public class PipActivity extends Activity implements
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
             // use KSYMediaPlayer instead of KSYBgmPlayer
-            //mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
             mStreamer.getAudioPlayerCapture().getMediaPlayer()
                     .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
                         @Override
