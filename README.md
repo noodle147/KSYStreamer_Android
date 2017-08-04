@@ -39,6 +39,7 @@
 * [声网连麦](Agora)
 * 无人机直播
 * [多视角采集](MultiPerspective)
+* [大眼瘦脸](KSYKiwiAndroid)
 
 ## 五. 开放合作
 任何企业、个人都可以参与，提供的第三方SDK付费、免费都可以。不限于以下的合作场景：
@@ -63,6 +64,7 @@
 1. 2017.1.24, [商汤手势识别](KSYStickerAndroid)上线
 1. 2017.4.1, [多视角采集](MultiPerspective)上线
 1. 2017.4.24 [短视频编辑SDK](https://github.com/ksvc/KSYMediaEditorKit_Android)上线
+1. 2017.8.4 [开为科技大眼瘦脸直播](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYKiwiAndroid)上线
 
 ## 七. 反馈与建议
 ### 7.1 反馈模板  
