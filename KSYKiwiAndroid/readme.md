@@ -2,11 +2,16 @@
 
 示例开为科技美颜、大眼瘦脸SDK与金山云[Android直播SDK][KSYLive_Android]合作，实现移动直播过程中实现大眼、瘦脸功能。
 
+|![photo4](http://ogbqmomng.bkt.clouddn.com/kiwiar/img/new/kiwiface-photo-4.png)|![photo3](http://ogbqmomng.bkt.clouddn.com/kiwiar/img/new/kiwiface-photo-3.png)|
+| :---: | :---:|
+| **大眼瘦脸** |**美颜**|
+
 ### 1. 说明
 
 ### 2. 使用指南
 
 ### 3. 授权 
+请访问[开为科技](http://kiwiar.com/?lang=zh)获取授权费用。
 
 ### 4. 反馈与建议
 #### 4.1 反馈模板  
