@@ -15,7 +15,7 @@ proguard
 # Java class files
 *.class
 
-#*.so
+*.so
 *.a
 
 *.log
