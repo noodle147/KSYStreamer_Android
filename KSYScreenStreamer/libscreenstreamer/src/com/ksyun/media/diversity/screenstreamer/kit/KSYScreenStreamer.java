@@ -2,6 +2,7 @@ package com.ksyun.media.diversity.screenstreamer.kit;
 
 import com.ksyun.media.diversity.screenstreamer.capture.ScreenCapture;
 import com.ksyun.media.streamer.capture.AudioCapture;
+import com.ksyun.media.streamer.capture.CameraCapture;
 import com.ksyun.media.streamer.capture.WaterMarkCapture;
 import com.ksyun.media.streamer.encoder.AVCodecAudioEncoder;
 import com.ksyun.media.streamer.encoder.AudioEncodeFormat;
@@ -39,6 +40,7 @@ import android.view.WindowManager;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * kit for Screen Record Streamer
@@ -46,7 +48,7 @@ import java.util.Map;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class KSYScreenStreamer {
     private static final String TAG = "KSYScreenStreamer";
-    public static final String LIBSCREENSTREAMER_VERSION_VALUE = "1.0.3.0";
+    public static final String LIBSCREENSTREAMER_VERSION_VALUE = "1.0.4.0";
     public static final int KSY_STREAMER_SCREEN_RECORD_UNSUPPORTED = -2007;
     public static final int KSY_STREAMER_SCREEN_RECORD_PERMISSION_DENIED = -2008;
 
@@ -59,6 +61,7 @@ public class KSYScreenStreamer {
     protected int mIdxAudioMic = 0;
 
     private String mUri;  //push url
+    protected String mRecordUri;
     private int mOffScreenWidth;
     private int mOffScreenHeight;
     private int mTargetResolution = StreamerConstants.DEFAULT_TARGET_RESOLUTION;
@@ -73,6 +76,7 @@ public class KSYScreenStreamer {
     private int mInitVideoBitrate = StreamerConstants.DEFAULT_INIT_VIDEO_BITRATE;
     private int mMinVideoBitrate = StreamerConstants.DEFAILT_MIN_VIDEO_BITRATE;
     private boolean mAutoAdjustVideoBitrate = true;
+    protected int mBwEstStrategy = RtmpPublisher.BW_EST_STRATEGY_NORMAL;
     private int mAudioBitrate = StreamerConstants.DEFAULT_AUDIO_BITRATE;
     private int mAudioSampleRate = StreamerConstants.DEFAULT_AUDIO_SAMPLE_RATE;
     private int mAudioChannels = StreamerConstants.DEFAULT_AUDIO_CHANNELS;
@@ -86,6 +90,8 @@ public class KSYScreenStreamer {
     private boolean mEnableDebugLog = false;
     private boolean mAutoRestart = false;
     private int mAutoRestartInterval = 3000;
+
+    protected AtomicInteger mAudioUsingCount;
 
     private KSYScreenStreamer.OnInfoListener mOnInfoListener;
     private KSYScreenStreamer.OnErrorListener mOnErrorListener;
@@ -117,6 +123,7 @@ public class KSYScreenStreamer {
         }
         mContext = context.getApplicationContext();
         mMainHandler = new Handler(Looper.getMainLooper());
+        StatsLogReport.getInstance().setContext(mContext);
         initModules();
     }
 
@@ -145,24 +152,43 @@ public class KSYScreenStreamer {
         mAudioResampleFilter = new AudioResampleFilter();
         //connect audio data
         mAudioCapture.getSrcPin().connect(mAudioFilterMgt.getSinkPin());
-        mAudioFilterMgt.getSrcPin().connect(mAudioMixer.getSinkPin(mIdxAudioMic));
-        mAudioMixer.getSrcPin().connect(mAudioResampleFilter.getSinkPin());
+        mAudioFilterMgt.getSrcPin().connect(mAudioResampleFilter.getSinkPin());
+        mAudioResampleFilter.getSrcPin().connect(mAudioMixer.getSinkPin(mIdxAudioMic));
 
         // encoder
         mVideoEncoderMgt = new VideoEncoderMgt(mScreenGLRender);
         mAudioEncoderMgt = new AudioEncoderMgt();
         mImgTexMixer.getSrcPin().connect(mVideoEncoderMgt.getImgTexSinkPin());
-        mAudioResampleFilter.getSrcPin().connect(mAudioEncoderMgt.getSinkPin());
+        mAudioMixer.getSrcPin().connect(mAudioEncoderMgt.getSinkPin());
 
         // publisher
         mRtmpPublisher = new RtmpPublisher();
         mFilePublisher = new FilePublisher();
+        mFilePublisher.setForceVideoFrameFirst(true);
 
         mPublisherMgt = new PublisherMgt();
         mAudioEncoderMgt.getSrcPin().connect(mPublisherMgt.getAudioSink());
         mVideoEncoderMgt.getSrcPin().connect(mPublisherMgt.getVideoSink());
-        mPublisherMgt.addPublisher(mFilePublisher);
         mPublisherMgt.addPublisher(mRtmpPublisher);
+
+        // set listeners
+        mScreenGLRender.addListener(new GLRender.GLRenderListener() {
+            @Override
+            public void onReady() {
+            }
+
+            @Override
+            public void onSizeChanged(int width, int height) {
+            }
+
+            @Override
+            public void onDrawFrame() {
+            }
+
+            @Override
+            public void onReleased() {
+            }
+        });
 
         WindowManager wm = (WindowManager) mContext
                 .getSystemService(Context.WINDOW_SERVICE);
@@ -275,10 +301,8 @@ public class KSYScreenStreamer {
                     case RtmpPublisher.INFO_CONNECTED:
                         if (!mAudioEncoderMgt.getEncoder().isEncoding()) {
                             mAudioEncoderMgt.getEncoder().start();
-                        }
-                        ByteBuffer audioExtra = mAudioEncoderMgt.getEncoder().getExtra();
-                        if (audioExtra != null) {
-                            mRtmpPublisher.setAudioExtra(audioExtra);
+                        } else {
+                            mRtmpPublisher.setAudioExtra(mAudioEncoderMgt.getEncoder().getExtra());
                         }
                         if (mOnInfoListener != null) {
                             mOnInfoListener.onInfo(
@@ -289,12 +313,11 @@ public class KSYScreenStreamer {
                         // start video encoder after audio header got
                         if (!mVideoEncoderMgt.getEncoder().isEncoding()) {
                             mVideoEncoderMgt.start();
+                        } else {
+                            mRtmpPublisher.setVideoExtra(mVideoEncoderMgt.
+                                    getEncoder().getExtra());
+                            mVideoEncoderMgt.getEncoder().forceKeyFrame();
                         }
-                        ByteBuffer videoExtra = mVideoEncoderMgt.getEncoder().getExtra();
-                        if (videoExtra != null) {
-                            mRtmpPublisher.setVideoExtra(videoExtra);
-                        }
-                        mVideoEncoderMgt.getEncoder().forceKeyFrame();
                         break;
                     case RtmpPublisher.INFO_PACKET_SEND_SLOW:
                         Log.i(TAG, "packet send slow, delayed " + msg + "ms");
@@ -305,20 +328,26 @@ public class KSYScreenStreamer {
                         }
                         break;
                     case RtmpPublisher.INFO_EST_BW_RAISE:
-                        if (mAutoAdjustVideoBitrate) {
-                            Log.d(TAG, "Raise video bitrate to " + msg);
-                            mVideoEncoderMgt.getEncoder().adjustBitrate((int) msg);
+                        if (!mAutoAdjustVideoBitrate) {
+                            break;
                         }
+                        msg = msg - mAudioBitrate;
+                        msg = Math.min(msg, mMaxVideoBitrate);
+                        Log.d(TAG, "Raise video bitrate to " + msg);
+                        mVideoEncoderMgt.getEncoder().adjustBitrate((int) msg);
                         if (mOnInfoListener != null) {
                             mOnInfoListener.onInfo(
                                     StreamerConstants.KSY_STREAMER_EST_BW_RAISE, (int) msg, 0);
                         }
                         break;
                     case RtmpPublisher.INFO_EST_BW_DROP:
-                        if (mAutoAdjustVideoBitrate) {
-                            Log.d(TAG, "Drop video bitrate to " + msg);
-                            mVideoEncoderMgt.getEncoder().adjustBitrate((int) msg);
+                        if (!mAutoAdjustVideoBitrate) {
+                            break;
                         }
+                        msg -= mAudioBitrate;
+                        msg = Math.max(msg, mMinVideoBitrate);
+                        Log.d(TAG, "Drop video bitrate to " + msg);
+                        mVideoEncoderMgt.getEncoder().adjustBitrate((int) msg);
                         if (mOnInfoListener != null) {
                             mOnInfoListener.onInfo(
                                     StreamerConstants.KSY_STREAMER_EST_BW_DROP, (int) msg, 0);
@@ -369,33 +398,37 @@ public class KSYScreenStreamer {
 
             @Override
             public void onInfo(int type, long msg) {
+                Log.d(TAG, "file publisher info:" + type);
                 switch (type) {
                     case FilePublisher.INFO_OPENED:
                         //start audio encoder first
                         if (!mAudioEncoderMgt.getEncoder().isEncoding()) {
                             mAudioEncoderMgt.getEncoder().start();
-                        }
-                        ByteBuffer audioExtra = mAudioEncoderMgt.getEncoder().getExtra();
-                        if (audioExtra != null) {
-                            mFilePublisher.setAudioExtra(audioExtra);
+                        } else {
+                            mFilePublisher.setAudioExtra(mAudioEncoderMgt.getEncoder().getExtra());
                         }
                         if (mOnInfoListener != null) {
                             mOnInfoListener.onInfo(
-                                    StreamerConstants.KSY_STREAMER_OPEN_STREAM_SUCCESS, 0, 0);
+                                    StreamerConstants.KSY_STREAMER_OPEN_FILE_SUCCESS, 0, 0);
                         }
                         break;
                     case FilePublisher.INFO_AUDIO_HEADER_GOT:
-
                         // start video encoder after audio header got
                         if (!mVideoEncoderMgt.getEncoder().isEncoding()) {
                             mVideoEncoderMgt.start();
+                        } else {
+                            mFilePublisher.setVideoExtra(mVideoEncoderMgt.
+                                    getEncoder().getExtra());
+                            mVideoEncoderMgt.getEncoder().forceKeyFrame();
                         }
-                        ByteBuffer videoExtra = mVideoEncoderMgt.getEncoder().getExtra();
-                        if (videoExtra != null) {
-                            mFilePublisher.setVideoExtra(videoExtra);
+                        break;
+                    case FilePublisher.INFO_STOPPED:
+                        mPublisherMgt.removePublisher(mFilePublisher);
+                        mIsFileRecording = false;
+                        if (mOnInfoListener != null) {
+                            mOnInfoListener.onInfo(
+                                    StreamerConstants.KSY_STREAMER_FILE_RECORD_STOPPED, 0, 0);
                         }
-                        mVideoEncoderMgt.getEncoder().forceKeyFrame();
-
                         break;
                     default:
                         break;
@@ -682,13 +715,14 @@ public class KSYScreenStreamer {
      */
     public void setTargetResolution(int idx) throws IllegalArgumentException {
         if (idx < StreamerConstants.VIDEO_RESOLUTION_360P ||
-                idx > StreamerConstants.VIDEO_RESOLUTION_720P) {
+                idx > StreamerConstants.VIDEO_RESOLUTION_1080P) {
             throw new IllegalArgumentException("Invalid resolution index");
         }
         mTargetResolution = idx;
         mTargetWidth = 0;
         mTargetHeight = 0;
         calResolution();
+        mImgTexScaleFilter.setTargetSize(mTargetWidth, mTargetHeight);
         mImgTexMixer.setTargetSize(mTargetWidth, mTargetHeight);
         mVideoEncoderMgt.setImgBufTargetSize(mTargetWidth, mTargetHeight);
     }
@@ -778,6 +812,8 @@ public class KSYScreenStreamer {
             throw new IllegalArgumentException("the VideoBitrate must > 0");
         }
         mInitVideoBitrate = bitrate;
+        mMaxVideoBitrate = bitrate;
+        mMinVideoBitrate = bitrate;
         mAutoAdjustVideoBitrate = false;
     }
 
@@ -789,7 +825,7 @@ public class KSYScreenStreamer {
      * @throws IllegalArgumentException
      */
     public void setVideoKBitrate(int kBitrate) throws IllegalArgumentException {
-        setVideoBitrate(kBitrate * 1024);
+        setVideoBitrate(kBitrate * 1000);
     }
 
     /**
@@ -803,8 +839,11 @@ public class KSYScreenStreamer {
      */
     public void setVideoBitrate(int initVideoBitrate, int maxVideoBitrate, int minVideoBitrate)
             throws IllegalArgumentException {
-        if (initVideoBitrate <= 0 || maxVideoBitrate <= 0 || minVideoBitrate <= 0) {
-            throw new IllegalArgumentException("the VideoBitrate must > 0");
+        if (initVideoBitrate <= 0 || maxVideoBitrate <= 0) {
+            throw new IllegalArgumentException("the initial and max VideoBitrate must > 0");
+        }
+        if (minVideoBitrate < 0) {
+            throw new IllegalArgumentException("the min VideoBitrate must >= 0");
         }
 
         mInitVideoBitrate = initVideoBitrate;
@@ -826,9 +865,32 @@ public class KSYScreenStreamer {
                                  int maxVideoKBitrate,
                                  int minVideoKBitrate)
             throws IllegalArgumentException {
-        setVideoBitrate(initVideoKBitrate * 1024,
-                maxVideoKBitrate * 1024,
-                minVideoKBitrate * 1024);
+        setVideoBitrate(initVideoKBitrate * 1000,
+                maxVideoKBitrate * 1000,
+                minVideoKBitrate * 1000);
+    }
+
+    /**
+     * Set streaming bandwidth estimate strategy.<br/>
+     * Would take effect on next {@link #startStream()} call.
+     *
+     * @param strategy strategy to set
+     * @see RtmpPublisher#BW_EST_STRATEGY_NORMAL
+     * @see RtmpPublisher#BW_EST_STRATEGY_NEGATIVE
+     */
+    public void setBwEstStrategy(int strategy) {
+        mBwEstStrategy = strategy;
+    }
+
+    /**
+     * Get current streaming bandwidth estimate strategy.<br/>
+     *
+     * @return strategy in use.
+     * @see RtmpPublisher#BW_EST_STRATEGY_NORMAL
+     * @see RtmpPublisher#BW_EST_STRATEGY_NEGATIVE
+     */
+    public int getBwEstStrategy() {
+        return mBwEstStrategy;
     }
 
     /**
@@ -995,7 +1057,7 @@ public class KSYScreenStreamer {
      * @throws IllegalArgumentException
      */
     public void setAudioKBitrate(int kBitrate) throws IllegalArgumentException {
-        setAudioBitrate(kBitrate * 1024);
+        setAudioBitrate(kBitrate * 1000);
     }
 
     /**
@@ -1059,6 +1121,8 @@ public class KSYScreenStreamer {
                 return 540;
             case StreamerConstants.VIDEO_RESOLUTION_720P:
                 return 720;
+            case StreamerConstants.VIDEO_RESOLUTION_1080P:
+                return 1080;
             default:
                 return 720;
         }
@@ -1112,18 +1176,26 @@ public class KSYScreenStreamer {
 
         VideoEncodeFormat videoEncodeFormat = new VideoEncodeFormat(mVideoCodecId,
                 mTargetWidth, mTargetHeight, mInitVideoBitrate);
+        if (mTargetFps == 0) {
+            mTargetFps = CameraCapture.DEFAULT_PREVIEW_FPS;
+        }
         videoEncodeFormat.setFramerate(mTargetFps);
         videoEncodeFormat.setIframeinterval(mIFrameInterval);
         videoEncodeFormat.setScene(mEncodeScene);
         videoEncodeFormat.setProfile(mEncodeProfile);
         mVideoEncoderMgt.setEncodeFormat(videoEncodeFormat);
 
+        // AAC-HE, AAC-HEv2 force use SOFT_ENCODING
+        if (mAudioProfile != AVConst.PROFILE_AAC_LOW) {
+            mAudioEncoderMgt.setEncodeMethod(AudioEncoderMgt.METHOD_SOFTWARE);
+        }
         AudioEncodeFormat audioEncodeFormat = new AudioEncodeFormat(AVConst.CODEC_ID_AAC,
                 AVConst.AV_SAMPLE_FMT_S16, mAudioSampleRate, mAudioChannels, mAudioBitrate);
         audioEncodeFormat.setProfile(mAudioProfile);
         mAudioEncoderMgt.setEncodeFormat(audioEncodeFormat);
 
         RtmpPublisher.BwEstConfig bwEstConfig = new RtmpPublisher.BwEstConfig();
+        bwEstConfig.strategy = mBwEstStrategy;
         bwEstConfig.initAudioBitrate = mAudioBitrate;
         bwEstConfig.initVideoBitrate = mInitVideoBitrate;
         bwEstConfig.minVideoBitrate = mMinVideoBitrate;
@@ -1133,6 +1205,10 @@ public class KSYScreenStreamer {
         mRtmpPublisher.setFramerate(mTargetFps);
         mRtmpPublisher.setVideoBitrate(mMaxVideoBitrate);
         mRtmpPublisher.setAudioBitrate(mAudioBitrate);
+
+        mFilePublisher.setVideoBitrate(mInitVideoBitrate);
+        mFilePublisher.setAudioBitrate(mAudioBitrate);
+        mFilePublisher.setFramerate(mTargetFps);
     }
 
     /**
@@ -1145,6 +1221,7 @@ public class KSYScreenStreamer {
         if (mIsRecording) {
             return false;
         }
+
         mIsRecording = true;
         startCapture();
         mRtmpPublisher.connect(mUri);
@@ -1152,12 +1229,15 @@ public class KSYScreenStreamer {
     }
 
     public boolean startRecord(String recordUrl) {
-        if (mIsFileRecording) {
+        if (mIsFileRecording || TextUtils.isEmpty(recordUrl)) {
             return false;
         }
+        mRecordUri = recordUrl;
         mIsFileRecording = true;
-        startCapture();
         mFilePublisher.startRecording(recordUrl);
+        // should connect FilePublisher after startRecord called
+        mPublisherMgt.addPublisher(mFilePublisher);
+        startCapture();
         return true;
     }
 
@@ -1165,9 +1245,12 @@ public class KSYScreenStreamer {
         if (!mIsFileRecording) {
             return;
         }
-        mIsFileRecording = false;
-        mFilePublisher.stop();
-        stopCapture();
+        if (mIsRecording || !mVideoEncoderMgt.getEncoder().isEncoding() ||
+                !mAudioEncoderMgt.getEncoder().isEncoding()) {
+            mFilePublisher.stop();
+        } else {
+            stopCapture();
+        }
     }
 
     private void startCapture() {
@@ -1177,7 +1260,7 @@ public class KSYScreenStreamer {
         mIsCaptureStarted = true;
         setAudioParams();
         setRecordingParams();
-        mAudioCapture.start();
+        startAudioCapture();
         mScreenCapture.start();
     }
 
@@ -1185,12 +1268,12 @@ public class KSYScreenStreamer {
         if (!mIsCaptureStarted) {
             return;
         }
-        if (mIsRecording || mIsFileRecording) {
-            return;
-        }
         mIsCaptureStarted = false;
-        if (mAudioCapture.isRecordingState()) {
-            mAudioCapture.stop();
+        stopAudioCapture();
+
+        if (!mIsRecording) {
+            mVideoEncoderMgt.getEncoder().flush();
+            mAudioEncoderMgt.getEncoder().flush();
         }
         mVideoEncoderMgt.stop();
         mAudioEncoderMgt.getEncoder().stop();
@@ -1205,8 +1288,10 @@ public class KSYScreenStreamer {
         if (!mIsRecording) {
             return false;
         }
+        if (!mIsFileRecording) {
+            stopCapture();
+        }
         mIsRecording = false;
-        stopCapture();
         mRtmpPublisher.disconnect();
         return true;
     }
@@ -1352,7 +1437,7 @@ public class KSYScreenStreamer {
      * @param volume volume in 0~1.0f, greater than 1.0f also acceptable.
      */
     public void setVoiceVolume(float volume) {
-        mAudioMixer.setInputVolume(mIdxAudioMic, volume);
+        mAudioCapture.setVolume(volume);
     }
 
     /**
@@ -1361,7 +1446,7 @@ public class KSYScreenStreamer {
      * @return volume in 0~1.0f, also could be greater than 1.0.
      */
     public float getVoiceVolume() {
-        return mAudioMixer.getInputVolume(mIdxAudioMic);
+        return mAudioCapture.getVolume();
     }
 
     /**
@@ -1419,7 +1504,6 @@ public class KSYScreenStreamer {
      */
     public void setEnableStreamStatModule(boolean enableStreamStatModule) {
         mEnableStreamStatModule = enableStreamStatModule;
-        StatsLogReport.getInstance().setIsPermitLogReport(mEnableStreamStatModule);
     }
 
     /**
@@ -1505,12 +1589,29 @@ public class KSYScreenStreamer {
     }
 
     /**
+     * Release all resources used by KSYScreenStreamer.
+     */
+    public void release() {
+        if (mMainHandler != null) {
+            mMainHandler.removeCallbacksAndMessages(null);
+            mMainHandler = null;
+        }
+        synchronized (mReleaseObject) {
+            mWaterMarkCapture.release();
+            mScreenCapture.release();
+            mAudioCapture.release();
+            mScreenGLRender.release();
+            setOnLogEventListener(null);
+        }
+    }
+
+    /**
      * Get current KSYStreamer sdk version.
      *
      * @return version number as 1.0.0.0
      */
     public String getKSYStreamerSDKVersion() {
-        return StatsConstant.SDK_VERSION_SUB_VALUE;
+        return StatsConstant.SDK_VERSION_VALUE;
     }
 
     /**
@@ -1536,6 +1637,31 @@ public class KSYScreenStreamer {
                         }
                     }
                 }, mAutoRestartInterval);
+            }
+        }
+    }
+
+    protected void stopAudioCapture() {
+        if (mAudioUsingCount == null) {
+            mAudioUsingCount = new AtomicInteger(0);
+        }
+        if (mAudioUsingCount.get() == 0) {
+            return;
+        }
+
+        if (mAudioUsingCount.decrementAndGet() == 0) {
+            mAudioCapture.stop();
+        }
+    }
+
+    protected void startAudioCapture() {
+        // May be used another audio capture
+        if (mAudioCapture.getSrcPin().isConnected()) {
+            if (mAudioUsingCount == null) {
+                mAudioUsingCount = new AtomicInteger(0);
+            }
+            if (mAudioUsingCount.getAndIncrement() == 0) {
+                mAudioCapture.start();
             }
         }
     }
@@ -1608,23 +1734,6 @@ public class KSYScreenStreamer {
             }
         }
         return index;
-    }
-
-    /**
-     * Release all resources used by KSYScreenStreamer.
-     */
-    public void release() {
-        if (mMainHandler != null) {
-            mMainHandler.removeCallbacksAndMessages(null);
-            mMainHandler = null;
-        }
-        synchronized (mReleaseObject) {
-            mWaterMarkCapture.release();
-            mScreenCapture.release();
-            mAudioCapture.release();
-            mScreenGLRender.release();
-            setOnLogEventListener(null);
-        }
     }
 
     public interface OnInfoListener {

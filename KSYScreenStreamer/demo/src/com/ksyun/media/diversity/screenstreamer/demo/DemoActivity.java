@@ -44,11 +44,13 @@ public class DemoActivity extends Activity
     private RadioGroup mSceneGroup;
     private RadioButton mSceneDefaultButton;
     private RadioButton mSceneShowSelfButton;
+    private RadioButton mSceneGameButton;
     private RadioGroup mProfileGroup;
     private RadioButton mProfileLowPowerButton;
     private RadioButton mProfileBalanceButton;
     private RadioButton mProfileHighPerfButton;
 
+    private CheckBox mStereoStreamCheckBox;
     private CheckBox mAutoStartCheckBox;
     private CheckBox mShowDebugInfoCheckBox;
 
@@ -83,10 +85,12 @@ public class DemoActivity extends Activity
         mSceneGroup = (RadioGroup) findViewById(R.id.encode_scene);
         mSceneDefaultButton = (RadioButton) findViewById(R.id.encode_scene_default);
         mSceneShowSelfButton = (RadioButton) findViewById(R.id.encode_scene_show_self);
+        mSceneGameButton = (RadioButton) findViewById(R.id.encode_scene_game);
         mProfileGroup = (RadioGroup) findViewById(R.id.encode_profile);
         mProfileLowPowerButton = (RadioButton) findViewById(R.id.encode_profile_low_power);
         mProfileBalanceButton = (RadioButton) findViewById(R.id.encode_profile_balance);
         mProfileHighPerfButton = (RadioButton) findViewById(R.id.encode_profile_high_perf);
+        mStereoStreamCheckBox = (CheckBox) findViewById(R.id.stereo_stream);
         mAutoStartCheckBox = (CheckBox) findViewById(R.id.autoStart);
         mShowDebugInfoCheckBox = (CheckBox) findViewById(R.id.print_debug_info);
 
@@ -129,6 +133,7 @@ public class DemoActivity extends Activity
                 int encodeScene;
                 int encodeProfile;
                 int orientation;
+                boolean stereoStream;
                 boolean startAuto;
                 boolean showDebugInfo;
 
@@ -176,10 +181,12 @@ public class DemoActivity extends Activity
                         encodeMethod = StreamerConstants.ENCODE_METHOD_SOFTWARE;
                     }
 
-                    if (mSceneDefaultButton.isChecked()) {
-                        encodeScene = VideoEncodeFormat.ENCODE_SCENE_DEFAULT;
-                    } else {
+                    if (mSceneShowSelfButton.isChecked()) {
                         encodeScene = VideoEncodeFormat.ENCODE_SCENE_SHOWSELF;
+                    } else if (mSceneGameButton.isChecked()) {
+                        encodeScene = VideoEncodeFormat.ENCODE_SCENE_GAME;
+                    } else {
+                        encodeScene = VideoEncodeFormat.ENCODE_SCENE_DEFAULT;
                     }
 
                     if (mProfileLowPowerButton.isChecked()) {
@@ -197,13 +204,14 @@ public class DemoActivity extends Activity
                     } else {
                         orientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
                     }
+                    stereoStream = mStereoStreamCheckBox.isChecked();
                     startAuto = mAutoStartCheckBox.isChecked();
                     showDebugInfo = mShowDebugInfoCheckBox.isChecked();
 
                     ScreenActivity.startActivity(getApplicationContext(), 0,
                             mUrlEditText.getText().toString(), frameRate, videoBitRate,
                             audioBitRate, videoResolution, orientation, encodeType, encodeMethod,
-                            encodeScene, encodeProfile, startAuto, showDebugInfo);
+                            encodeScene, encodeProfile, stereoStream, startAuto, showDebugInfo);
                 }
                 break;
             default:

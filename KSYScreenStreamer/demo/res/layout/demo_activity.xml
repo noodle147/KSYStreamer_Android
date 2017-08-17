@@ -170,6 +170,13 @@
                 android:layout_height="wrap_content"
                 android:checked="true"
                 android:text="秀场模式" />
+
+            <RadioButton
+                android:id="@+id/encode_scene_game"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:text="游戏模式" />
         </RadioGroup>
 
         <RadioGroup
@@ -208,6 +215,14 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/encode_profile"
             android:orientation="vertical">
+
+            <CheckBox
+                android:id="@+id/stereo_stream"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:checked="false"
+                android:text="双声道推流" />
             
             <CheckBox
                 android:id="@+id/autoStart"

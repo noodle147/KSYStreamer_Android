@@ -71,8 +71,6 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static com.ksyun.media.streamer.logstats.StatsConstant.ENCODE_TYPE;
-
 /**
  * 录屏示例窗口
  * 提供悬浮摄像头预览窗口示例
@@ -108,14 +106,15 @@ public class ScreenActivity extends Activity implements
 
     //params from DemoActivity
     public final static String URL = "url";
-    public final static String FRAME_RATE = "framerate";
+    public final static String FRAME_RATE = "frame_rate";
     public final static String VIDEO_BITRATE = "video_bitrate";
     public final static String AUDIO_BITRATE = "audio_bitrate";
     public final static String VIDEO_RESOLUTION = "video_resolution";
     public final static String ORIENTATION = "orientation";
-    public final static String ENCDODE_METHOD = "encode_method";
+    public final static String STEREO_STREAM = "stereo_stream";
     public final static String START_AUTO = "start_auto";
-    public static final String SHOW_DEBUGINFO = "show_debuginfo";
+    public static final String SHOW_DEBUG_INFO = "show_debug_info";
+    public final static String ENCODE_TYPE = "encode_type";
     public final static String ENCODE_METHOD = "encode_method";
     public final static String ENCODE_SCENE = "encode_scene";
     public final static String ENCODE_PROFILE = "encode_profile";
@@ -195,7 +194,7 @@ public class ScreenActivity extends Activity implements
                                      int videoResolution, int orientation,
                                      int encodeType, int encodeMethod,
                                      int encodeScene, int encodeProfile,
-                                     boolean startAuto, boolean showDebugInfo) {
+                                     boolean stereoStream, boolean startAuto, boolean showDebugInfo) {
         Intent intent = new Intent(context, ScreenActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra("type", fromType);
@@ -209,8 +208,9 @@ public class ScreenActivity extends Activity implements
         intent.putExtra(ENCODE_METHOD, encodeMethod);
         intent.putExtra(ENCODE_SCENE, encodeScene);
         intent.putExtra(ENCODE_PROFILE, encodeProfile);
+        intent.putExtra(STEREO_STREAM, stereoStream);
         intent.putExtra(START_AUTO, startAuto);
-        intent.putExtra(SHOW_DEBUGINFO, showDebugInfo);
+        intent.putExtra(SHOW_DEBUG_INFO, showDebugInfo);
         context.startActivity(intent);
     }
 
@@ -308,7 +308,7 @@ public class ScreenActivity extends Activity implements
 
             //编码方式  must be <2,3> default value METHOD_SOFTWARE(3)
             //若设置了无效值(ENCODE_METHOD_SOFTWARE_COMPAT)@throws IllegalArgumentException
-            int encode_method = bundle.getInt(ENCDODE_METHOD);
+            int encode_method = bundle.getInt(ENCODE_METHOD);
             mScreenStreamer.setEncodeMethod(encode_method);
 
             int encode_type = bundle.getInt(ENCODE_TYPE);
@@ -319,6 +319,9 @@ public class ScreenActivity extends Activity implements
 
             int encodeProfile = bundle.getInt(ENCODE_PROFILE);
             mScreenStreamer.setVideoEncodeProfile(encodeProfile);
+
+            boolean stereoStream = bundle.getBoolean(STEREO_STREAM);
+            mScreenStreamer.setAudioChannels(stereoStream ? 2 : 1);
 
             //推流的横竖屏设置,默认竖屏
             int orientation = bundle.getInt(ORIENTATION, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -359,7 +362,7 @@ public class ScreenActivity extends Activity implements
             };
 
             mAutoStart = bundle.getBoolean(START_AUTO, false);
-            mPrintDebugInfo = bundle.getBoolean(SHOW_DEBUGINFO, false);
+            mPrintDebugInfo = bundle.getBoolean(SHOW_DEBUG_INFO, false);
         }
 
         //default false may change duraing the streaming
@@ -1387,7 +1390,7 @@ public class ScreenActivity extends Activity implements
 
         if (mCameraPreviewKit == null) {
             mCameraPreviewKit = new KSYCameraPreview(this,
-                    mScreenStreamer.getGLRender().getEGLContext());
+                    mScreenStreamer.getGLRender().getEGL10Context());
             mCameraPreviewKit.setDisplayPreview(mCameraPreview);
             mCameraPreviewKit.setOnErrorListener(mOnPreviewErrorListener);
             mCameraPreviewKit.setOnInfoListener(mOnPreviewInfoListener);

@@ -2,14 +2,15 @@ package com.ksyun.media.diversity.screenstreamer.kit;
 
 import com.ksyun.media.streamer.capture.CameraCapture;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterMgt;
-import com.ksyun.media.streamer.filter.imgtex.ImgTexMixer;
+import com.ksyun.media.streamer.filter.imgtex.ImgTexPreview;
 import com.ksyun.media.streamer.filter.imgtex.ImgTexScaleFilter;
 import com.ksyun.media.streamer.kit.StreamerConstants;
 import com.ksyun.media.streamer.util.gles.GLRender;
 
 import android.content.Context;
-import android.opengl.EGLContext;
-import android.opengl.GLSurfaceView;
+
+import javax.microedition.khronos.egl.EGLContext;
+
 import android.util.Log;
 import android.view.TextureView;
 
@@ -18,12 +19,11 @@ import android.view.TextureView;
  */
 public class KSYCameraPreview {
     private static final String TAG = "KSYCameraPreview";
+    private static final boolean DEBUG = false;
+    private static final int DEFAULT_PREVIEW_WIDTH = 720;
+    private static final int DEFAULT_PREVIEW_HEIGHT = 1280;
 
     private Context mContext;
-
-    private EGLContext mEGLContext;
-    private GLRender mCameraGLRender;
-    private CameraCapture mCameraPreview;
 
     private int mScreenRenderWidth = 0;
     private int mScreenRenderHeight = 0;
@@ -35,9 +35,12 @@ public class KSYCameraPreview {
     private float mPreviewFps = StreamerConstants.DEFAULT_PREVIEW_FPS;
     private boolean mDelayedStartCameraPreview = false;
 
+    private EGLContext mEGLContext;
+    private GLRender mGLRender;
+    private CameraCapture mCameraCapture;
     private ImgTexScaleFilter mImgTexScaleFilter;
-    private ImgTexMixer mImgTexMixer;
     private ImgTexFilterMgt mImgTexFilterMgt;
+    private ImgTexPreview mImgTexPreview;
 
     private KSYCameraPreview.OnInfoListener mOnInfoListener;
     private KSYCameraPreview.OnErrorListener mOnErrorListener;
@@ -53,19 +56,38 @@ public class KSYCameraPreview {
 
     private void initModules() {
         // Init GLRender for gpu render
-        mCameraGLRender = new GLRender(mEGLContext);
+        mGLRender = new GLRender(mEGLContext);
 
         // Camera preview
-        mCameraPreview = new CameraCapture(mContext, mCameraGLRender);
-        mImgTexScaleFilter = new ImgTexScaleFilter(mCameraGLRender);
+        mCameraCapture = new CameraCapture(mContext, mGLRender);
+        mImgTexScaleFilter = new ImgTexScaleFilter(mGLRender);
         mImgTexFilterMgt = new ImgTexFilterMgt(mContext);
-        mImgTexMixer = new ImgTexMixer(mCameraGLRender);
-        mImgTexMixer.setIsPreviewer(true);
-        mCameraPreview.mImgTexSrcPin.connect(mImgTexScaleFilter.getSinkPin());
+        mImgTexPreview = new ImgTexPreview();
+        mCameraCapture.mImgTexSrcPin.connect(mImgTexScaleFilter.getSinkPin());
         mImgTexScaleFilter.getSrcPin().connect(mImgTexFilterMgt.getSinkPin());
-        mImgTexFilterMgt.getSrcPin().connect(mImgTexMixer.getSinkPin(0));
+        mImgTexFilterMgt.getSrcPin().connect(mImgTexPreview.getSinkPin());
 
-        mCameraPreview.setOnCameraCaptureListener(new CameraCapture.OnCameraCaptureListener() {
+        // set listeners
+        mGLRender.addListener(new GLRender.GLRenderListener() {
+            @Override
+            public void onReady() {
+                mImgTexPreview.setEGL10Context(mGLRender.getEGL10Context());
+            }
+
+            @Override
+            public void onSizeChanged(int width, int height) {
+            }
+
+            @Override
+            public void onDrawFrame() {
+            }
+
+            @Override
+            public void onReleased() {
+            }
+        });
+
+        mCameraCapture.setOnCameraCaptureListener(new CameraCapture.OnCameraCaptureListener() {
             @Override
             public void onStarted() {
                 Log.d(TAG, "CameraCapture ready");
@@ -106,6 +128,35 @@ public class KSYCameraPreview {
                 }
             }
         });
+        // init with offscreen GLRender
+        mGLRender.init(1, 1);
+    }
+
+    /**
+     * Get {@link GLRender} instance.
+     *
+     * @return GLRender instance.
+     */
+    public GLRender getGLRender() {
+        return mGLRender;
+    }
+
+    /**
+     * Get {@link CameraCapture} module instance.
+     *
+     * @return CameraCapture instance.
+     */
+    public CameraCapture getCameraCapture() {
+        return mCameraCapture;
+    }
+
+    /**
+     * Get {@link ImgTexFilterMgt} instance to manage GPU filters.
+     *
+     * @return ImgTexFilterMgt instance.
+     */
+    public ImgTexFilterMgt getImgTexFilterMgt() {
+        return mImgTexFilterMgt;
     }
 
     /**
@@ -115,8 +166,8 @@ public class KSYCameraPreview {
      * @param textureView TextureView to be set.
      */
     public void setDisplayPreview(TextureView textureView) {
-        mCameraGLRender.init(textureView);
-        mCameraGLRender.addListener(mGLRenderListener);
+        mImgTexPreview.setDisplayPreview(textureView);
+        mImgTexPreview.getGLRender().addListener(mGLRenderListener);
     }
 
     /**
@@ -143,10 +194,9 @@ public class KSYCameraPreview {
             }
         }
         mRotateDegrees = degrees;
-        mCameraPreview.setOrientation(degrees);
+        mCameraCapture.setOrientation(degrees);
 
         mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
-        mImgTexMixer.setTargetSize(mPreviewWidth, mPreviewHeight);
     }
 
     /**
@@ -159,10 +209,54 @@ public class KSYCameraPreview {
     }
 
     /**
-     * Set preview resolution.<br/>
+     * Set camera capture resolution.<br/>
      * <p>
      * The set resolution would take effect on next {@link #startCameraPreview()}
      * {@link #startCameraPreview(int)} call.<br/>
+     * <p>
+     * Both of the set width and height must be greater than 0.
+     *
+     * @param width  capture width
+     * @param height capture height
+     * @throws IllegalArgumentException
+     */
+    public void setCameraCaptureResolution(int width, int height) throws IllegalArgumentException {
+        if (width <= 0 || height <= 0) {
+            throw new IllegalArgumentException("Invalid resolution");
+        }
+        mCameraCapture.setPreviewSize(width, height);
+    }
+
+    /**
+     * Set camera capture resolution.<br/>
+     * <p>
+     * The set resolution would take effect on next {@link #startCameraPreview()}
+     * {@link #startCameraPreview(int)} call.<br/>
+     *
+     * @param idx Resolution index.<br/>
+     * @throws IllegalArgumentException
+     * @see StreamerConstants#VIDEO_RESOLUTION_360P
+     * @see StreamerConstants#VIDEO_RESOLUTION_480P
+     * @see StreamerConstants#VIDEO_RESOLUTION_540P
+     * @see StreamerConstants#VIDEO_RESOLUTION_720P
+     * @see StreamerConstants#VIDEO_RESOLUTION_1080P
+     */
+    public void setCameraCaptureResolution(int idx) throws IllegalArgumentException {
+        if (idx < StreamerConstants.VIDEO_RESOLUTION_360P ||
+                idx > StreamerConstants.VIDEO_RESOLUTION_1080P) {
+            throw new IllegalArgumentException("Invalid resolution index");
+        }
+        int height = getShortEdgeLength(idx);
+        int width = height * 16 / 9;
+        mCameraCapture.setPreviewSize(width, height);
+    }
+
+    /**
+     * Set preview resolution.<br/>
+     * <p>
+     * The set resolution would take effect on next {@link #startCameraPreview()}
+     * {@link #startCameraPreview(int)} call, if called not in previewing mode.<br/>
+     * If called in previewing mode, it would take effect immediately.<br/>
      * <p>
      * The set width and height must not be 0 at same time.
      * If one of the params is 0, the other would calculated by the actual preview view size
@@ -190,6 +284,7 @@ public class KSYCameraPreview {
      * <p>
      * The set resolution would take effect on next {@link #startCameraPreview()}
      * {@link #startCameraPreview(int)} call.
+     * If called in previewing mode, it would take effect immediately.<br/>
      *
      * @param idx Resolution index.<br/>
      * @throws IllegalArgumentException
@@ -197,6 +292,7 @@ public class KSYCameraPreview {
      * @see StreamerConstants#VIDEO_RESOLUTION_480P
      * @see StreamerConstants#VIDEO_RESOLUTION_540P
      * @see StreamerConstants#VIDEO_RESOLUTION_720P
+     * @see StreamerConstants#VIDEO_RESOLUTION_1080P
      */
     public void setPreviewResolution(int idx) throws IllegalArgumentException {
         if (idx < StreamerConstants.VIDEO_RESOLUTION_360P ||
@@ -236,7 +332,7 @@ public class KSYCameraPreview {
      * The set fps would take effect on next {@link #startCameraPreview()}
      * {@link #startCameraPreview(int)} call.<br/>
      * <p>
-     * The actual preview fps is depend on device, may be different with the set value.
+     * The actual preview fps depends on the running device, may be different with the set value.
      *
      * @param fps frame rate to be set.
      * @throws IllegalArgumentException
@@ -255,24 +351,6 @@ public class KSYCameraPreview {
      */
     public float getPreviewFps() {
         return mPreviewFps;
-    }
-
-    /**
-     * Get {@link ImgTexFilterMgt} instance to manage GPU filters.
-     *
-     * @return ImgTexFilterMgt instance.
-     */
-    public ImgTexFilterMgt getImgTexFilterMgt() {
-        return mImgTexFilterMgt;
-    }
-
-    /**
-     * Get {@link GLRender} instance.
-     *
-     * @return GLRender instance.
-     */
-    public GLRender getGLRender() {
-        return mCameraGLRender;
     }
 
     /**
@@ -298,15 +376,6 @@ public class KSYCameraPreview {
     }
 
     /**
-     * Get {@link CameraCapture} module instance.
-     *
-     * @return CameraCapture instance.
-     */
-    public CameraCapture getCameraCapture() {
-        return mCameraPreview;
-    }
-
-    /**
      * Start camera preview with default facing, or facing set by
      * {@link #setCameraFacing(int)} before.
      */
@@ -323,13 +392,17 @@ public class KSYCameraPreview {
      */
     public void startCameraPreview(int facing) {
         mCameraFacing = facing;
-        if (mScreenRenderWidth == 0 || mScreenRenderHeight == 0) {
-            mDelayedStartCameraPreview = true;
-        } else {
-            setPreviewParams();
-            mCameraPreview.start(mCameraFacing);
+        if ((mPreviewWidth == 0 || mPreviewHeight == 0) &&
+                (mScreenRenderWidth == 0 || mScreenRenderHeight == 0)) {
+            if (mImgTexPreview.getDisplayPreview() != null) {
+                mDelayedStartCameraPreview = true;
+                return;
+            }
+            mScreenRenderWidth = DEFAULT_PREVIEW_WIDTH;
+            mScreenRenderHeight = DEFAULT_PREVIEW_HEIGHT;
         }
-
+        setPreviewParams();
+        mCameraCapture.start(mCameraFacing);
     }
 
     /**
@@ -337,7 +410,7 @@ public class KSYCameraPreview {
      * init camera resolution
      */
     public void stopCameraPreview() {
-        mCameraPreview.stop();
+        mCameraCapture.stop();
         mScreenRenderWidth = 0;
         mScreenRenderHeight = 0;
         mPreviewWidth = 0;
@@ -354,6 +427,8 @@ public class KSYCameraPreview {
                 return 540;
             case StreamerConstants.VIDEO_RESOLUTION_720P:
                 return 720;
+            case StreamerConstants.VIDEO_RESOLUTION_1080P:
+                return 1080;
             default:
                 return 720;
         }
@@ -373,10 +448,12 @@ public class KSYCameraPreview {
             }
         }
 
-        if (mPreviewWidth == 0) {
-            mPreviewWidth = mPreviewHeight * mScreenRenderWidth / mScreenRenderHeight;
-        } else if (mPreviewHeight == 0) {
-            mPreviewHeight = mPreviewWidth * mScreenRenderHeight / mScreenRenderWidth;
+        if (mScreenRenderWidth != 0 && mScreenRenderHeight != 0) {
+            if (mPreviewWidth == 0) {
+                mPreviewWidth = mPreviewHeight * mScreenRenderWidth / mScreenRenderHeight;
+            } else if (mPreviewHeight == 0) {
+                mPreviewHeight = mPreviewWidth * mScreenRenderHeight / mScreenRenderWidth;
+            }
         }
         mPreviewWidth = align(mPreviewWidth, 8);
         mPreviewHeight = align(mPreviewHeight, 8);
@@ -384,12 +461,14 @@ public class KSYCameraPreview {
 
     private void setPreviewParams() {
         calResolution();
-        mCameraPreview.setOrientation(mRotateDegrees);
-        mCameraPreview.setPreviewSize(mPreviewWidth, mPreviewHeight);
-        mCameraPreview.setPreviewFps(mPreviewFps);
+        mCameraCapture.setOrientation(mRotateDegrees);
+        mCameraCapture.setPreviewSize(mPreviewWidth, mPreviewHeight);
+        if (mPreviewFps == 0) {
+            mPreviewFps = CameraCapture.DEFAULT_PREVIEW_FPS;
+        }
+        mCameraCapture.setPreviewFps(mPreviewFps);
 
         mImgTexScaleFilter.setTargetSize(mPreviewWidth, mPreviewHeight);
-        mImgTexMixer.setTargetSize(mPreviewWidth, mPreviewHeight);
     }
 
     /**
@@ -414,7 +493,7 @@ public class KSYCameraPreview {
      * Switch camera facing between front and back.
      */
     public void switchCamera() {
-        mCameraPreview.switchCamera();
+        mCameraCapture.switchCamera();
     }
 
 
@@ -432,19 +511,19 @@ public class KSYCameraPreview {
      * Should be called on Activity.onResume or Fragment.onResume.
      */
     public void onResume() {
-        mCameraGLRender.onResume();
+        mGLRender.onResume();
     }
 
     /**
      * Should be called on Activity.onPause or Fragment.onPause.
      */
     public void onPause() {
-        mCameraGLRender.onPause();
+        mGLRender.onPause();
     }
 
     public void release() {
-        mCameraGLRender.release();
-        mCameraPreview.release();
+        mGLRender.release();
+        mCameraCapture.release();
     }
 
     private GLRender.GLRenderListener mGLRenderListener = new GLRender.GLRenderListener() {
@@ -458,7 +537,7 @@ public class KSYCameraPreview {
             mScreenRenderHeight = height;
             setPreviewParams();
             if (mDelayedStartCameraPreview) {
-                mCameraPreview.start(mCameraFacing);
+                mCameraCapture.start(mCameraFacing);
                 mDelayedStartCameraPreview = false;
             }
         }
