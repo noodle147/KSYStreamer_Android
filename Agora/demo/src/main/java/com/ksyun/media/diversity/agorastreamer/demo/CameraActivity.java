@@ -369,6 +369,10 @@ public class CameraActivity extends Activity implements
         if (mWaterMarkCheckBox.isChecked()) {
             showWaterMark();
         }
+
+        if (mAutoStart) {
+            startStream();
+        }
     }
 
     private void initBeautyUI() {
@@ -496,6 +500,7 @@ public class CameraActivity extends Activity implements
         mStreamer.setDisplayPreview(mCameraPreviewView);
         mStreamer.onResume();
         mCameraHintView.hideAll();
+        startCameraPreviewWithPermCheck();
     }
 
     @Override
@@ -505,9 +510,6 @@ public class CameraActivity extends Activity implements
             mOrientationEventListener.disable();
         }
         mStreamer.onPause();
-        // setOffscreenPreview to enable camera capture in background
-        mStreamer.setOffscreenPreview(mStreamer.getPreviewWidth(),
-                mStreamer.getPreviewHeight());
     }
 
     @Override
@@ -680,9 +682,6 @@ public class CameraActivity extends Activity implements
                 case StreamerConstants.KSY_STREAMER_CAMERA_INIT_DONE:
                     Log.d(TAG, "KSY_STREAMER_CAMERA_INIT_DONE");
                     setCameraAntiBanding50Hz();
-                    if (mAutoStart) {
-                        startStream();
-                    }
                     break;
                 case StreamerConstants.KSY_STREAMER_OPEN_STREAM_SUCCESS:
                     Log.d(TAG, "KSY_STREAMER_OPEN_STREAM_SUCCESS");
@@ -795,10 +794,13 @@ public class CameraActivity extends Activity implements
                     break;
             }
             switch (what) {
-                case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_UNKNOWN:
-                case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_START_FAILED:
                 case StreamerConstants.KSY_STREAMER_AUDIO_RECORDER_ERROR_START_FAILED:
                 case StreamerConstants.KSY_STREAMER_AUDIO_RECORDER_ERROR_UNKNOWN:
+                    break;
+                case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_UNKNOWN:
+                case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_START_FAILED:
+                case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_EVICTED:
+                    mStreamer.stopCameraPreview();
                     break;
                 case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_SERVER_DIED:
                     mStreamer.stopCameraPreview();
@@ -1018,7 +1020,7 @@ public class CameraActivity extends Activity implements
     }
 
     private void onAudioPreviewChecked(boolean isChecked) {
-        if(isChecked != mStreamer.isAudioPreviewing()) {
+        if (isChecked != mStreamer.isAudioPreviewing()) {
             // 若没有插入耳机，该接口会设置失败，因此设置完毕后需要判断一下，进行状态复归
             mStreamer.setEnableAudioPreview(isChecked);
             if (isChecked != mStreamer.isAudioPreviewing()) {

@@ -25,7 +25,7 @@ import io.agora.rtc.IRtcEngineEventHandler;
 public class KSYAgoraStreamer extends KSYStreamer {
     private static final String TAG = "KSYAgoraStreamer";
     private static final boolean DEBUG = false;
-    private static final String VERSION = "1.0.4.0";
+    private static final String VERSION = "1.0.5.0";
 
     private static final int mIdxVideoSub = 3;
     private static final int mIdxAudioRemote = 2;
@@ -87,6 +87,10 @@ public class KSYAgoraStreamer extends KSYStreamer {
         mImgTexMixer.setRenderRect(mIdxVideoSub, left, top, width, height, 1.0f);
         mImgTexMixer.setRenderRect(mIdxCamera, 0.f, 0.f, 1.f, 1.f, 1.0f);
         mImgTexMixer.setScalingMode(mIdxVideoSub, mode);
+
+        mImgTexPreviewMixer.setRenderRect(mIdxVideoSub, left, top, width, height, 1.0f);
+        mImgTexPreviewMixer.setRenderRect(mIdxCamera, 0.f, 0.f, 1.f, 1.f, 1.0f);
+        mImgTexPreviewMixer.setScalingMode(mIdxVideoSub, mode);
     }
 
     @Override
@@ -103,13 +107,11 @@ public class KSYAgoraStreamer extends KSYStreamer {
         mRTCImgTexScaleFilter = new ImgTexScaleFilter(mGLRender);
         mImgTexFilterMgt.getSrcPin().connect(mRTCImgTexScaleFilter.getSinkPin());
         mRTCImgTexScaleFilter.getSrcPin().connect(mRTCImgTexToBuf.mSinkPin);
+        //send local video to rtc module sink pin
+        mRTCImgTexToBuf.mSrcPin.connect(mRTCClient.getRTCIO().getImgSinkPin());
 
         mRTCRemoteImgTexScaleFilter = new ImgTexScaleFilter(mGLRender);
         mRTCRemoteImgTexScaleFilter.setReuseFbo(false);
-
-        //send local video to rtc module sink pin
-        mRTCImgTexToBuf.mSrcPin.connect(mRTCClient.getRTCIO().getImgSinkPin());
-        mRTCImgTexToBuf.start();
 
         setRTCSubScreenRect(0.65f, 0.f, 0.35f, 0.3f, SCALING_MODE_CENTER_CROP);
 
@@ -136,7 +138,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
                     case MediaManager.MediaUiHandler.FIRST_FRAME_DECODED: {
                         //收到辅播数据后，设置辅播画面为大窗口
                         setAudioMode(mHeadSetPluged == true ?
-                                AudioManager.MODE_IN_COMMUNICATION: AudioManager.MODE_NORMAL);
+                                AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_NORMAL);
                         mHasSubConnecting = true;
                         updateRTCConnect(mRTCMainScreen);
                         Log.d(TAG, "onFirstRemoteVideoDecoded " + Arrays.toString(data));
@@ -148,7 +150,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
                         mHasSubConnecting = false;
                         mRTCClient.getRTCIO().stopReceiveRemoteData();
                         updateRTCConnect(RTC_MAIN_SCREEN_CAMERA);
-                        if(!mIsCalling) {
+                        if (!mIsCalling) {
                             if ((mIsRecording || mIsFileRecording) &&
                                     !mAudioCapture.isRecordingState()) {
                                 mAudioCapture.start();
@@ -192,14 +194,14 @@ public class KSYAgoraStreamer extends KSYStreamer {
         boolean isLastLandscape = (mRotateDegrees % 180) != 0;
         boolean isLandscape = (degrees % 180) != 0;
         if (isLastLandscape != isLandscape) {
-            if(mHasSubConnecting) {
+            if (mHasSubConnecting) {
                 setRTCSubScreenRect(mPresetSubLeft, mPresetSubTop, mPresetSubHeight,
                         mPresetSubWidth, mPresetSubMode);
             }
         }
         super.setRotateDegrees(degrees);
         //setRTCMainScreen(mRTCMainScreen);
-        if(mHasSubConnecting) {
+        if (mHasSubConnecting) {
             updateRTCConnect(mRTCMainScreen);
         }
     }
@@ -228,7 +230,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
                 //just demo for rtc img,see following for details(setVideoProfile)
                 // https://docs.agora.io/cn/user_guide/API/android_api_live.html
                 boolean isLandscape = (mRotateDegrees % 180) != 0;
-                if(isLandscape) {
+                if (isLandscape) {
                     mRTCImgTexScaleFilter.setTargetSize(640, 360);
                     mMediaManager.setVideoProfile(IRtcEngineEventHandler.VideoProfile
                             .VIDEO_PROFILE_360P, false);
@@ -365,7 +367,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
             }
 
             mHeadSetPluged = headeSetConnected;
-            if(mHasSubConnecting) {
+            if (mHasSubConnecting) {
                 setAudioMode(mHeadSetPluged == true ?
                         AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_NORMAL);
             }
@@ -373,7 +375,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
     }
 
     public RectF getRTCSubScreenRect() {
-        return mImgTexMixer.getRenderRect(mIdxVideoSub);
+        return mImgTexPreviewMixer.getRenderRect(mIdxVideoSub);
     }
 
     public static String getAgoraRTCVersion() {
@@ -381,9 +383,15 @@ public class KSYAgoraStreamer extends KSYStreamer {
     }
 
     private void updateRTCConnect(int rtcMainScreen) {
-        mImgTexFilterMgt.getSrcPin().disconnect(false);
+
+        mImgTexFilterMgt.getSrcPin().disconnect(mImgTexMixer.getSinkPin(mIdxCamera), false);
+        mImgTexFilterMgt.getSrcPin().disconnect(mImgTexPreviewMixer.getSinkPin(mIdxCamera), false);
+        mImgTexFilterMgt.getSrcPin().disconnect(mImgTexMixer.getSinkPin(mIdxVideoSub), false);
+        mImgTexFilterMgt.getSrcPin().disconnect(mImgTexPreviewMixer.getSinkPin(mIdxVideoSub), false);
+
         mRTCRemoteImgTexScaleFilter.getSrcPin().disconnect(false);
         mRTCClient.getRTCIO().getImgSrcPin().disconnect(false);
+
 
         boolean needScale = false;
         if (mRTCClient.getRTCIO().getRemoteImgFormat() != null) {
@@ -399,6 +407,8 @@ public class KSYAgoraStreamer extends KSYStreamer {
 
         if (rtcMainScreen == RTC_MAIN_SCREEN_REMOTE) {
             mImgTexFilterMgt.getSrcPin().connect(mImgTexMixer.getSinkPin(mIdxVideoSub));
+            mImgTexFilterMgt.getSrcPin().connect(mImgTexPreviewMixer.getSinkPin(mIdxVideoSub));
+
             mImgTexFilterMgt.getSrcPin().connect(mRTCImgTexScaleFilter.getSinkPin());
 
             if (needScale) {
@@ -406,25 +416,33 @@ public class KSYAgoraStreamer extends KSYStreamer {
                                 .getRemoteImgFormat().height,
                         mRTCClient.getRTCIO().getRemoteImgFormat().width);
                 mRTCClient.getRTCIO().getImgSrcPin().connect(mRTCRemoteImgTexScaleFilter.getSinkPin());
+                mRTCRemoteImgTexScaleFilter.getSrcPin().connect(mImgTexPreviewMixer.getSinkPin(mIdxCamera));
                 mRTCRemoteImgTexScaleFilter.getSrcPin().connect(mImgTexMixer.getSinkPin(mIdxCamera));
             } else {
+                mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexPreviewMixer.getSinkPin(mIdxCamera));
                 mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexMixer.getSinkPin(mIdxCamera));
             }
+            mImgTexPreviewMixer.setMainSinkPinIndex(mIdxVideoSub);
             mImgTexMixer.setMainSinkPinIndex(mIdxVideoSub);
         } else {
+            mImgTexFilterMgt.getSrcPin().connect(mImgTexPreviewMixer.getSinkPin(mIdxCamera));
             mImgTexFilterMgt.getSrcPin().connect(mImgTexMixer.getSinkPin(mIdxCamera));
             mImgTexFilterMgt.getSrcPin().connect(mRTCImgTexScaleFilter.getSinkPin());
-            if(mHasSubConnecting) {
+            if (mHasSubConnecting) {
                 if (needScale) {
                     mRTCRemoteImgTexScaleFilter.setTargetSize(mRTCClient.getRTCIO()
                                     .getRemoteImgFormat().height,
                             mRTCClient.getRTCIO().getRemoteImgFormat().width);
                     mRTCClient.getRTCIO().getImgSrcPin().connect(mRTCRemoteImgTexScaleFilter.getSinkPin());
+                    mRTCRemoteImgTexScaleFilter.getSrcPin().connect(mImgTexPreviewMixer
+                            .getSinkPin(mIdxVideoSub));
                     mRTCRemoteImgTexScaleFilter.getSrcPin().connect(mImgTexMixer.getSinkPin(mIdxVideoSub));
                 } else {
+                    mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexPreviewMixer.getSinkPin(mIdxVideoSub));
                     mRTCClient.getRTCIO().getImgSrcPin().connect(mImgTexMixer.getSinkPin(mIdxVideoSub));
                 }
             }
+            mImgTexPreviewMixer.setMainSinkPinIndex(mIdxCamera);
             mImgTexMixer.setMainSinkPinIndex(mIdxCamera);
         }
 
@@ -452,6 +470,8 @@ public class KSYAgoraStreamer extends KSYStreamer {
 
     private void updateRemoteSize(int rtcMainScreen) {
         if (!mHasSubConnecting) {
+            //当前并未处与连麦状态，恢复大屏为全屏显示
+            mImgTexPreviewMixer.setRenderRect(mIdxCamera, 0.f, 0.f, 1.f, 1.f, 1.0f);
             mImgTexMixer.setRenderRect(mIdxCamera, 0.f, 0.f, 1.f, 1.f, 1.0f);
             return;
         }
@@ -476,7 +496,7 @@ public class KSYAgoraStreamer extends KSYStreamer {
         if (needScale) {
             if (rtcMainScreen == RTC_MAIN_SCREEN_REMOTE) {
                 float left, top, w_new, h_new;
-                left =  mPresetSubLeft;
+                left = mPresetSubLeft;
                 top = mPresetSubTop;
                 w_new = mPresetSubWidth;
                 h_new = mPresetSubHeight;
@@ -497,6 +517,8 @@ public class KSYAgoraStreamer extends KSYStreamer {
 
                 mImgTexMixer.setRenderRect(mIdxCamera, left, top, w_new,
                         h_new, 1.0f);
+                mImgTexPreviewMixer.setRenderRect(mIdxCamera, left, top, w_new,
+                        h_new, 1.0f);
 
             } else if (rtcMainScreen == RTC_MAIN_SCREEN_CAMERA) {
                 RectF rect = getRTCSubScreenRect();
@@ -514,10 +536,16 @@ public class KSYAgoraStreamer extends KSYStreamer {
                 float top = (float) 0.05;
                 mImgTexMixer.setRenderRect(mIdxVideoSub, left, top, w_new,
                         h_new, 1.0f);
+                mImgTexPreviewMixer.setRenderRect(mIdxVideoSub, left, top, w_new,
+                        h_new, 1.0f);
+
             }
         } else {
             mImgTexMixer.setRenderRect(mIdxCamera, 0.f, 0.f, 1.f, 1.f, 1.0f);
             mImgTexMixer.setRenderRect(mIdxVideoSub, mPresetSubLeft, mPresetSubTop,
+                    mPresetSubWidth, mPresetSubHeight, 1.0f);
+            mImgTexPreviewMixer.setRenderRect(mIdxCamera, 0.f, 0.f, 1.f, 1.f, 1.0f);
+            mImgTexPreviewMixer.setRenderRect(mIdxVideoSub, mPresetSubLeft, mPresetSubTop,
                     mPresetSubWidth, mPresetSubHeight, 1.0f);
         }
     }
