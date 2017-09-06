@@ -841,6 +841,23 @@ public class FaceunityActivity extends Activity implements
                 }
             };
 
+//    private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
+//        @Override
+//        public short[] OnAudioRawData(short[] data, int count) {
+//            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
+//            //audio pcm data
+//            return data;
+//        }
+//    };
+//
+//    private OnPreviewFrameListener mOnPreviewFrameListener = new OnPreviewFrameListener() {
+//        @Override
+//        public void onPreviewFrame(byte[] data, int width, int height, boolean isRecording) {
+//            Log.d(TAG, "onPreviewFrame data.length=" + data.length + " " +
+//                    width + "x" + height + " mRecording=" + isRecording);
+//        }
+//    };
+
     private void onSwitchCamera() {
         mStreamer.switchCamera();
         mCameraHintView.hideAll();
@@ -1000,7 +1017,6 @@ public class FaceunityActivity extends Activity implements
 
     private void onFrontMirrorChecked(boolean isChecked) {
         mStreamer.setFrontCameraMirror(isChecked);
-
         updateFaceunitParams();
     }
 
@@ -1174,7 +1190,6 @@ public class FaceunityActivity extends Activity implements
         mFaceunityBeautySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                initFaceunity();
                 TextView textView = ((TextView) parent.getChildAt(0));
                 if (textView != null) {
                     textView.setTextColor(getResources().getColor(R.color.font_color_35));
@@ -1184,15 +1199,13 @@ public class FaceunityActivity extends Activity implements
                     if (mImgFaceunityFilter == null) {
                         return;
                     }
-                    mStreamer.getCameraCapture().mImgBufSrcPin.disconnect(mImgFaceunityFilter.getBufSinkPin(),
-                            false);
                     mImgFaceunityFilter.setBeautyType(-1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyCheekLayout.setVisibility(View.INVISIBLE);
                     mFaceunityBeautyEyeLayout.setVisibility(View.INVISIBLE);
                 } else {
-                    mStreamer.getCameraCapture().mImgBufSrcPin.connect(mImgFaceunityFilter.getBufSinkPin());
+                    initFaceunity();
                     mImgFaceunityFilter.setBeautyType(position - 1);
                     mFaceunityBeautyGrindLayout.setVisibility(View.VISIBLE);
                     mFaceunityBeautyWhitenLayout.setVisibility(View.VISIBLE);
@@ -1264,13 +1277,8 @@ public class FaceunityActivity extends Activity implements
         initFaceunity();
 
         if (isCheck) {
-            mStreamer.getCameraCapture().mImgBufSrcPin.connect(mImgFaceunityFilter.getBufSinkPin());
             showFaceunityPropChoose();
         } else {
-            if (mFaceunityGestureCheckBox.isChecked()) {
-                mStreamer.getCameraCapture().mImgBufSrcPin.disconnect(mImgFaceunityFilter.getBufSinkPin(),
-                        false);
-            }
             mImgFaceunityFilter.setPropType(-1);
         }
     }
@@ -1279,13 +1287,8 @@ public class FaceunityActivity extends Activity implements
         initFaceunity();
 
         if (isCheck) {
-            mStreamer.getCameraCapture().mImgBufSrcPin.connect(mImgFaceunityFilter.getBufSinkPin());
             showFaceunityGestureChoose();
         } else {
-            if (!mFaceunityPropCheckBox.isChecked()) {
-                mStreamer.getCameraCapture().mImgBufSrcPin.disconnect(mImgFaceunityFilter.getBufSinkPin(),
-                        false);
-            }
             mImgFaceunityFilter.setGestureType(-1);
         }
     }
@@ -1335,10 +1338,9 @@ public class FaceunityActivity extends Activity implements
     private void initFaceunity() {
         if (mImgFaceunityFilter == null) {
             //add faceunity filter
-            mImgFaceunityFilter = new ImgFaceunityFilter(this, mStreamer.getGLRender());
+            mImgFaceunityFilter = new ImgFaceunityFilter(this, mStreamer.getGLRender(), mStreamer);
             mStreamer.getImgTexFilterMgt().setExtraFilter(mImgFaceunityFilter);
         }
-
         updateFaceunitParams();
     }
 
