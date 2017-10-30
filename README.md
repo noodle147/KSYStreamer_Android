@@ -30,6 +30,7 @@
 * [游戏录屏直播](KSYScreenStreamer)
 * [应用内录屏](KSYScreenStreamer)
 * [第三方相机接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/eyemore)
+* [UVC摄像头接入](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYUVCStreamerAndroid)
 * [短视频录制编辑](https://github.com/ksvc/KSYMediaEditorKit_Android)
 * 边录制边推流
 * [商汤动态贴纸、手势识别](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYStickerAndroid)
@@ -65,6 +66,7 @@
 1. 2017.4.1, [多视角采集](MultiPerspective)上线
 1. 2017.4.24 [短视频编辑SDK](https://github.com/ksvc/KSYMediaEditorKit_Android)上线
 1. 2017.8.4 [开为科技大眼瘦脸直播](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYKiwiAndroid)上线
+1. 2017.10.30 [UVC摄像头](https://github.com/ksvc/KSYDiversityLive_Android/tree/master/KSYUVCStreamerAndroid)接入示例发布
 
 ## 七. 反馈与建议
 ### 7.1 反馈模板  
