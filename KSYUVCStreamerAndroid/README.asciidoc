@@ -1,0 +1,42 @@
+= 金山云USB UVC摄像头支持示例
+:numbered:
+//:toc: left
+:icons: font
+:source-highlighter: pygments
+
+该工程基于 https://github.com/ksvc/KSYStreamer_Android[KSYStreamer Android SDK],
+和 https://github.com/saki4510t/UVCCamera[UVCCamera]。
+
+其中，UVCCamera工程实现了在Android平台上对支持UVC协议的USB摄像头的底层支持，
+当前工程示例演示了如何将UVCCamera采集到的数据接入金山云推流SDK.
+
+== 运行环境
+
+* 硬编模式下最低支持版本为Android 4.3，软编模式下为Android 4.4
+* 支持的cpu架构：armv7, arm64, x86
+
+**注意：** 编译运行时，ndk版本必须使用r12b, 使用其他ndk版本可能会出现crash.
+
+ndk版本指定方式： +
+编辑工程根目录下的local.properties文件，将ndk.dir改为r12b版本ndk所在路径。
+
+== Demo使用说明
+
+使用OTG线连接支持UVC协议的USB摄像头到目标机器，打开app，进入预览界面。
+
+首次启动时，如果插入的USB摄像头被UVCCamera工程所支持，会弹出权限确认窗口，
+点击确认后，稍后即可出现预览画面。
+
+NOTE:: 当前工程代码仅测试了少数几个摄像头，可能会存在兼容性问题，
+遇到问题后可以先使用UVCCamera仓库中的demo进行测试。
+
+== 工程代码结构
+
+集成代码包名为: com.ksyun.media.diversity.ksyuvcstreamer, 位于app目录下，
+包含以下内容：
+
+* capture: 将UVCCamera采集内容转换为Texture，传递给SDK进行处理
+** capture/UVCCameraCapture.java: UVC摄像头采集模块
+* kit: 用UVCCameraCapture替换掉CameraCapture后的封装类
+** kit/KSYUVCStreamer: 替换了摄像头采集源的KSYStreamer类
+* demo: 使用例程
