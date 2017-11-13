@@ -84,7 +84,10 @@
 ### 7.2 联系方式
 - 主页：[金山云](http://v.ksyun.com)
 - 邮箱：<zengfanping@kingsoft.com>
-- QQ讨论群：574179720 [视频云技术交流群] 
+- QQ讨论群：
+  - 574179720 [视频云技术交流群]
+  - 620036233 [视频云Android技术交流]
+  - 以上两个加一个QQ群即可   
 - Issues: <https://github.com/ksvc/KSYDiversityLive_Android/issues>
 
 [KSYLive_Android]:https://github.com/ksvc/KSYLive_Android
