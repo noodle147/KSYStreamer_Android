@@ -1,6 +1,8 @@
 package com.ksyun.media.diversity.agorastreamer.agora.kit;
 
 
+import android.util.Log;
+
 import com.ksyun.media.diversity.agorastreamer.agora.MediaManager;
 import com.ksyun.media.diversity.agorastreamer.agora.RemoteDataObserver;
 import com.ksyun.media.streamer.capture.ImgTexSrcPin;
@@ -15,6 +17,9 @@ import com.ksyun.media.streamer.framework.SrcPin;
 import com.ksyun.media.streamer.util.gles.GLRender;
 
 import io.agora.extvideo.AgoraVideoSource;
+import io.agora.rtc.video.AgoraVideoFrame;
+
+import static com.ksy.statlibrary.util.Constants.LOG_TAG;
 
 
 /**
@@ -139,19 +144,18 @@ public class AgoraRTCIO {
 
         @Override
         public void onFrameAvailable(ImgBufFrame frame) {
-            //send video frame to peer
-            mVideoSource = mRTCWrapper.getVideoSource();
-            if (mVideoSource != null) {
-                //TODO get buf from ByteBuffer
-                byte[] buf = new byte[frame.buf.remaining()];
-                frame.buf.get(buf);
-                mVideoSource.DeliverFrame(buf, frame.format.width, frame.format.height, 0,
-                        0, 0, 0, frame.format.orientation,
-                        frame.pts,
-                        1); // 1 is I420
-            }
-
-
+           //send video frame to peer
+            AgoraVideoFrame vf = new AgoraVideoFrame();
+            vf.format = 1; //1 is I420
+            vf.timeStamp = frame.pts;
+            vf.stride = frame.format.width;
+            vf.height = frame.format.height;
+            vf.rotation = 0;
+            byte[] buf = new byte[frame.buf.remaining()];
+            frame.buf.get(buf);
+            vf.buf = buf;
+            boolean result = mRTCWrapper.getRtcEngine().pushExternalVideoFrame(vf);
+            Log.d(LOG_TAG, "send frame to Agora SDK status " + result);
         }
 
         @Override

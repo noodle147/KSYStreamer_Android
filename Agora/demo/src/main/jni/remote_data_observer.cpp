@@ -78,6 +78,11 @@ public:
 	{
 		return true;
 	}
+    virtual bool onMixedAudioFrame(AudioFrame& audioFrame) override{
+        return true;
+    };
+
+
 };
 
 class AgoraVideoFrameObserver : public agora::media::IVideoFrameObserver
@@ -183,7 +188,7 @@ void RemoteDataObserver::enableObserver(bool enable)
 	pthread_mutex_lock(&mutex);
 
 	agora::util::AutoPtr<agora::media::IMediaEngine> mediaEngine;
-	mediaEngine.queryInterface(*rtcEngine, agora::rtc::AGORA_IID_MEDIA_ENGINE);
+	mediaEngine.queryInterface(rtcEngine, agora::rtc::AGORA_IID_MEDIA_ENGINE);
 	if (mediaEngine) {
 		if (enable) {
 			//TODO

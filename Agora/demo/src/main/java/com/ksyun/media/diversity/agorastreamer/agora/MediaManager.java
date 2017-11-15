@@ -8,7 +8,6 @@ import com.ksyun.media.diversity.agorastreamer.demo.R;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.agora.extvideo.AgoraVideoSource;
 import io.agora.rtc.Constants;
 import io.agora.rtc.IRtcEngineEventHandler;
 import io.agora.rtc.RtcEngine;
@@ -27,7 +26,6 @@ public class MediaManager extends IRtcEngineEventHandler {
 
     String channelId;
 
-    private AgoraVideoSource videoSource;
     private int mVideoProfile = VideoProfile.VIDEO_PROFILE_360P_3;  //360*640
     private boolean mSwapWidth = false;
 
@@ -62,10 +60,13 @@ public class MediaManager extends IRtcEngineEventHandler {
         }
 
         Log.d(LOG_TAG, "init " + appId);
-
-        rtcEngine = RtcEngine.create(context, appId, this);
-        videoSource = new AgoraVideoSource(); // define main class for customize video source
-        videoSource.Attach();
+        try{
+            rtcEngine = RtcEngine.create(context, appId, this);
+        }catch(Exception e){
+            Log.e(LOG_TAG, "Agora RtcEngine create failed");
+        }
+        //set external Video type
+        rtcEngine.setExternalVideoSource(true, false, true);
         rtcEngine.enableVideo();
     }
 
@@ -192,10 +193,6 @@ public class MediaManager extends IRtcEngineEventHandler {
         for (MediaUiHandler uiHandler : uiHandlers) {
             uiHandler.onMediaEvent(MediaUiHandler.ON_VENDOR_MSG, uid, data);
         }
-    }
-
-    public AgoraVideoSource getVideoSource() {
-        return videoSource;
     }
 
     public RtcEngine getRtcEngine() {
