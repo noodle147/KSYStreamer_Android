@@ -12,7 +12,7 @@
 
 ## 1. 运行环境
 
-支持的cpu架构：armveabi
+支持的cpu架构：armeabi
 
 ## 2. SDK更新
 
