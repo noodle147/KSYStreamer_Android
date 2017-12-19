@@ -6,8 +6,8 @@
 
 其中，讯飞云SDK实现了将语言听写功能，将语言转化为文字。
 
-该示例将讯飞云SDK和金山云融合SDK进行集成，可在推流的同时，使用语言听写功能，并将听写内容作为字幕叠加到推流画面上。
-
+该示例将讯飞云SDK和金山云融合SDK进行集成，可在推流的同时，使用语言听写功能，并将听写内容作为字幕叠加到推流画面上。    
+![demo视频](https://raw.githubusercontent.com/wiki/ksvc/KSYDiversityLive_Android/images/ksy_xfyun_demo.gif)
 
 
 ## 1. 运行环境
