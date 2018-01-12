@@ -84,13 +84,12 @@ public class DemoActivity extends Activity implements OnClickListener {
         mAutoStartCheckBox = (CheckBox) findViewById(R.id.autoStart);
         mShowDebugInfoCheckBox = (CheckBox) findViewById(R.id.print_debug_info);
 
+        mContext = this;
         mSenseArService = SenseArMaterialService.shareInstance();
         mSenseArService.initialize(mContext);
 //        requestPermission();
 
         mHasAuthorized = authorized(false);
-
-        mContext = this;
 
         copyFileIfNeed(SenseArMaterialService.MODEL_FILE_NAME);
 
