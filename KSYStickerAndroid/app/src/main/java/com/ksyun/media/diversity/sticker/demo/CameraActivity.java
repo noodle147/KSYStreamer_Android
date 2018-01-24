@@ -532,10 +532,9 @@ public class CameraActivity extends Activity implements
 
     private OnAudioRawDataListener mOnAudioRawDataListener = new OnAudioRawDataListener() {
         @Override
-        public short[] OnAudioRawData(short[] data, int count) {
-            Log.d(TAG, "OnAudioRawData data.length=" + data.length + " count=" + count);
-            //audio pcm data
-            return data;
+        public short[] OnAudioRawData(short[] shorts, int i, int i1, int i2) {
+            Log.d(TAG, "OnAudioRawData data.length=" + shorts.length + " count=" + shorts);
+            return shorts;
         }
     };
 
@@ -687,8 +686,6 @@ public class CameraActivity extends Activity implements
 
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
-            // use KSYMediaPlayer instead of KSYBgmPlayer
-            mStreamer.getAudioPlayerCapture().setEnableMediaPlayer(true);
             mStreamer.getAudioPlayerCapture().getMediaPlayer()
                     .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
                         @Override
@@ -699,8 +696,7 @@ public class CameraActivity extends Activity implements
             mStreamer.getAudioPlayerCapture().getMediaPlayer()
                     .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
                         @Override
-                        public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
-                            Log.e(TAG, "OnErrorListener, Error:" + what + ", extra:" + extra);
+                        public boolean onError(IMediaPlayer iMediaPlayer, int i, int i1) {
                             return false;
                         }
                     });

@@ -52,6 +52,8 @@ import com.ksyun.media.diversity.sticker.demo.utils.TriggerActionUtils;
 import com.ksyun.media.diversity.sticker.demo.widget.GridViewAdapter;
 import com.ksyun.media.diversity.sticker.demo.widget.HorizontalListView;
 import com.ksyun.media.diversity.sticker.demo.widget.STListViewAdapter;
+import com.ksyun.media.player.IMediaPlayer;
+import com.ksyun.media.player.KSYMediaPlayer;
 import com.ksyun.media.streamer.capture.camera.CameraTouchHelper;
 import com.ksyun.media.streamer.filter.audio.AudioFilterBase;
 import com.ksyun.media.streamer.filter.audio.AudioReverbFilter;
@@ -63,7 +65,6 @@ import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterMgt;
 import com.ksyun.media.streamer.kit.KSYStreamer;
 import com.ksyun.media.streamer.kit.StreamerConstants;
 import com.ksyun.media.streamer.logstats.StatsLogReport;
-import com.ksyun.media.streamer.util.audio.KSYBgmPlayer;
 import com.sensetime.sensear.SenseArBroadcasterClient;
 import com.sensetime.sensear.SenseArClient;
 import com.sensetime.sensear.SenseArMaterial;
@@ -851,22 +852,23 @@ public class StickerCameraActivity  extends Activity implements
 
     private void onBgmChecked(boolean isChecked) {
         if (isChecked) {
-            mStreamer.getAudioPlayerCapture().getBgmPlayer()
-                    .setOnCompletionListener(new KSYBgmPlayer.OnCompletionListener() {
+            mStreamer.getAudioPlayerCapture().getMediaPlayer()
+                    .setOnCompletionListener(new KSYMediaPlayer.OnCompletionListener() {
                         @Override
-                        public void onCompletion(KSYBgmPlayer bgmPlayer) {
+                        public void onCompletion(IMediaPlayer iMediaPlayer) {
                             Log.d(TAG, "End of the currently playing music");
                         }
                     });
-            mStreamer.getAudioPlayerCapture().getBgmPlayer()
-                    .setOnErrorListener(new KSYBgmPlayer.OnErrorListener() {
+            mStreamer.getAudioPlayerCapture().getMediaPlayer()
+                    .setOnErrorListener(new KSYMediaPlayer.OnErrorListener() {
                         @Override
-                        public void onError(KSYBgmPlayer bgmPlayer, int what, int extra) {
+                        public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
                             Log.e(TAG, "onBgmError: " + what);
+                            return false;
                         }
                     });
-            mStreamer.getAudioPlayerCapture().getBgmPlayer().setVolume(1.0f);
-            mStreamer.getAudioPlayerCapture().getBgmPlayer().setMute(false);
+            mStreamer.getAudioPlayerCapture().setVolume(1.0f);
+            mStreamer.getAudioPlayerCapture().setMute(false);
             mStreamer.startBgm(mBgmPath, true);
             mStreamer.setHeadsetPlugged(true);
         } else {

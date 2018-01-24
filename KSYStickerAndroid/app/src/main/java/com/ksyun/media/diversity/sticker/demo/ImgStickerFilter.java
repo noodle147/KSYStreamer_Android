@@ -229,9 +229,9 @@ public class ImgStickerFilter extends ImgFilterBase {
                 synchronized (mBufLock) {
                     if (mBufArray != null) {
                         if (mOutTexture == ImgTexFrame.NO_TEXTURE) {
-                            mOutTexture = FboManager.getInstance()
+                            mOutTexture = mGLRender.getFboManager()
                                     .getTextureAndLock(frame.format.width, frame.format.height);
-                            mOutFrameBuffer = FboManager.getInstance().getFramebuffer(mOutTexture);
+                            mOutFrameBuffer = mGLRender.getFboManager().getFramebuffer(mOutTexture);
                         }
                         GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, mViewPort, 0);
                         GLES20.glViewport(0, 0, frame.format.width, frame.format.height);
@@ -328,7 +328,7 @@ public class ImgStickerFilter extends ImgFilterBase {
         @Override
         public void onReleased() {
             if (mOutTexture != ImgTexFrame.NO_TEXTURE) {
-                FboManager.getInstance().unlock(mOutTexture);
+                mGLRender.getFboManager().unlock(mOutTexture);
                 mOutTexture = ImgTexFrame.NO_TEXTURE;
             }
             mMaterialRender.releaseGLResource();
@@ -343,7 +343,7 @@ public class ImgStickerFilter extends ImgFilterBase {
     private void release() {
         mSrcPin.disconnect(true);
         if (mOutTexture != ImgTexFrame.NO_TEXTURE) {
-            FboManager.getInstance().unlock(mOutTexture);
+            mGLRender.getFboManager().unlock(mOutTexture);
             mOutTexture = ImgTexFrame.NO_TEXTURE;
         }
 
@@ -384,7 +384,7 @@ public class ImgStickerFilter extends ImgFilterBase {
                 public void run() {
                     mMaterialRender.releaseGLResource();
                     if (mOutTexture != ImgTexFrame.NO_TEXTURE) {
-                        FboManager.getInstance().unlock(mOutTexture);
+                        mGLRender.getFboManager().unlock(mOutTexture);
                         mOutTexture = ImgTexFrame.NO_TEXTURE;
                     }
                     mBufArrayWithStride = null;
