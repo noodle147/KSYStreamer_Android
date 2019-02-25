@@ -4,8 +4,8 @@ package com.ksyun.media.diversity.sticker.demo;
  * Created by sensetime on 16-9-9.
  */
 public class Constants {
-    public static final String APP_ID = "7f76ce6bd292444b9368a7ba436c39fd";
-    public static final String APP_KEY = "fa8e3603044c41ff8dbbd5531624ab0d";
+    public static final String APP_ID = "";
+    public static final String APP_KEY = "";
     public static String appHost = "http://app.ad.sensetime.com";   //online server
     public static String KEY = APP_KEY;     //for online key
     public static String APPID = APP_ID;  //for online sever
