@@ -54,6 +54,12 @@
             android:launchMode="singleTop"
             android:theme="@style/Theme.RiseAnimation">
         </activity>
+        <activity
+            android:name="com.ksyun.media.diversity.pipstreamer.demo.AudioActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.RiseAnimation">
+        </activity>
     </application>
 
 </manifest>

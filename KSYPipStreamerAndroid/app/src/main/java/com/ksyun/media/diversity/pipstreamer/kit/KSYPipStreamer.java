@@ -110,7 +110,7 @@ public class KSYPipStreamer extends KSYStreamer {
     }
 
     public void showBgVideo(String url) {
-        mMediaPlayerCapture.start(url);
+        mMediaPlayerCapture.start(url, false);
         if (isAudioPreviewing()) {
             mMediaPlayerCapture.getMediaPlayer().setPlayerMute(1);
         }

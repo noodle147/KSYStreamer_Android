@@ -29,6 +29,7 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.ksyun.media.diversity.pipstreamer.kit.KSYAudioStreamer;
 import com.ksyun.media.diversity.pipstreamer.kit.KSYPipStreamer;
 import com.ksyun.media.player.IMediaPlayer;
 import com.ksyun.media.streamer.capture.camera.CameraTouchHelper;
@@ -49,36 +50,25 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class PipActivity extends Activity implements
+public class AudioActivity extends Activity implements
         ActivityCompat.OnRequestPermissionsResultCallback {
 
-    private static final String TAG = "PipActivity";
+    private static final String TAG = "AudioActivity";
+    private static final String BG_TAG = "Audio_BG";
 
-    private GLSurfaceView mCameraPreviewView;
-    //private TextureView mCameraPreviewView;
+
     CameraTouchHelper mCameraTouchHelper;
-    private CameraHintView mCameraHintView;
     private Chronometer mChronometer;
-    private View mDeleteView;
-    private View mSwitchCameraView;
-    private View mFlashView;
-    private TextView mShootingText;
-    private CheckBox mWaterMarkCheckBox;
-    private CheckBox mBeautyCheckBox;
-    private CheckBox mReverbCheckBox;
-    private CheckBox mAudioPreviewCheckBox;
-    private CheckBox mBgmCheckBox;
-    private CheckBox mMuteCheckBox;
-    private CheckBox mAudioOnlyCheckBox;
-    private CheckBox mPipCheckBox;
-    private CheckBox mFrontMirrorCheckBox;
+    private CheckBox mBgMusicCheckBox;
+    private CheckBox mBgSoundEffectCheckBox;
+    private CheckBox mBgUserVoiceCheckBox;
     private TextView mUrlTextView;
     private TextView mDebugInfoTextView;
+    private CheckBox mStartCheckBox;
 
-    private ButtonObserver mObserverButton;
     private CheckBoxObserver mCheckBoxObserver;
 
-    private KSYPipStreamer mStreamer;
+    private KSYAudioStreamer mStreamer;
     private Handler mMainHandler;
     private Timer mTimer;
 
@@ -90,10 +80,9 @@ public class PipActivity extends Activity implements
     private boolean isFlashOpened = false;
     private String mUrl;
     private String mDebugInfo = "";
-    private String mBgmPath = "/sdcard/Downloads/test1.mp3";
-    private String mBgPicPath = "file:///sdcard/Downloads/test4.jpg";
-    private String mPipPath = "/sdcard/Downloads/v1x1.mp4";
-    private String mLogoPath = "file:///sdcard/Downloads/dudu_logo.png";
+    private final String mBgMusicPath = "/sdcard/Downloads/test1.mp3";
+    private final String mBgSoundEffectPath = "/sdcard/Downloads/test2.mp3";
+    private final String mBgUserVoicePath = "/sdcard/Downloads/test3.mp3";
 
     private boolean mHWEncoderUnsupported;
     private boolean mSWEncoderUnsupported;
@@ -118,7 +107,7 @@ public class PipActivity extends Activity implements
                                      int videoResolution, boolean isLandscape,
                                      int encodeMethod, boolean startAuto,
                                      boolean showDebugInfo) {
-        Intent intent = new Intent(context, PipActivity.class);
+        Intent intent = new Intent(context, AudioActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.putExtra("type", fromType);
         intent.putExtra(URL, rtmpUrl);
@@ -138,50 +127,28 @@ public class PipActivity extends Activity implements
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
-        setContentView(R.layout.camera_activity);
+        setContentView(R.layout.audio_activity);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        mCameraHintView = (CameraHintView) findViewById(R.id.camera_hint);
-        mCameraPreviewView = (GLSurfaceView) findViewById(R.id.camera_preview);
         //mCameraPreviewView = (TextureView) findViewById(R.id.camera_preview);
         mUrlTextView = (TextView) findViewById(R.id.url);
         mChronometer = (Chronometer) findViewById(R.id.chronometer);
         mDebugInfoTextView = (TextView) findViewById(R.id.debuginfo);
 
-        mObserverButton = new ButtonObserver();
-        mShootingText = (TextView) findViewById(R.id.click_to_shoot);
-        mShootingText.setOnClickListener(mObserverButton);
-        mDeleteView = findViewById(R.id.backoff);
-        mDeleteView.setOnClickListener(mObserverButton);
-        mSwitchCameraView = findViewById(R.id.switch_cam);
-        mSwitchCameraView.setOnClickListener(mObserverButton);
-        mFlashView = findViewById(R.id.flash);
-        mFlashView.setOnClickListener(mObserverButton);
-
         mCheckBoxObserver = new CheckBoxObserver();
-        mBeautyCheckBox = (CheckBox) findViewById(R.id.click_to_switch_beauty);
-        mBeautyCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mReverbCheckBox = (CheckBox) findViewById(R.id.click_to_select_audio_filter);
-        mReverbCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mBgmCheckBox = (CheckBox) findViewById(R.id.bgm);
-        mBgmCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mAudioPreviewCheckBox = (CheckBox) findViewById(R.id.ear_mirror);
-        mAudioPreviewCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mMuteCheckBox = (CheckBox) findViewById(R.id.mute);
-        mMuteCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mWaterMarkCheckBox = (CheckBox) findViewById(R.id.watermark);
-        mWaterMarkCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mFrontMirrorCheckBox = (CheckBox) findViewById(R.id.front_camera_mirror);
-        mFrontMirrorCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mAudioOnlyCheckBox = (CheckBox) findViewById(R.id.audio_only);
-        mAudioOnlyCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
-        mPipCheckBox = (CheckBox) findViewById(R.id.pip) ;
-        mPipCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mBgMusicCheckBox = (CheckBox) findViewById(R.id.cb_Bg_Music);
+        mBgMusicCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mBgSoundEffectCheckBox = (CheckBox) findViewById(R.id.cb_Bg_Sound_Effect);
+        mBgSoundEffectCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mBgUserVoiceCheckBox = (CheckBox) findViewById(R.id.cb_Bg_User_Voice);
+        mBgUserVoiceCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mStartCheckBox = (CheckBox) findViewById(R.id.cb_Start);
+        mStartCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
 
         mMainHandler = new Handler();
-        mStreamer = new KSYPipStreamer(this);
+        mStreamer = new KSYAudioStreamer(this);
         Bundle bundle = getIntent().getExtras();
         if (bundle != null) {
             String url = bundle.getString(URL);
@@ -221,66 +188,38 @@ public class PipActivity extends Activity implements
             } else {
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             }
+            mStreamer.setAudioOnly(true);
 
             mAutoStart = bundle.getBoolean(START_ATUO, false);
             mPrintDebugInfo = bundle.getBoolean(SHOW_DEBUGINFO, false);
         }
-        mStreamer.setDisplayPreview(mCameraPreviewView);
         mStreamer.setEnableStreamStatModule(true);
         mStreamer.enableDebugLog(true);
-        mStreamer.setFrontCameraMirror(mFrontMirrorCheckBox.isChecked());
-        mStreamer.setMuteAudio(mMuteCheckBox.isChecked());
-        mStreamer.setEnableAudioPreview(mAudioPreviewCheckBox.isChecked());
+        mStreamer.setMuteAudio(false);
+        mStreamer.setEnableAudioPreview(false);
         mStreamer.setOnInfoListener(mOnInfoListener);
         mStreamer.setOnErrorListener(mOnErrorListener);
         mStreamer.setOnLogEventListener(mOnLogEventListener);
         //mStreamer.setOnAudioRawDataListener(mOnAudioRawDataListener);
         //mStreamer.setOnPreviewFrameListener(mOnPreviewFrameListener);
-        mStreamer.getImgTexFilterMgt().setFilter(mStreamer.getGLRender(),
-                ImgTexFilterMgt.KSY_FILTER_BEAUTY_DENOISE);
-        mStreamer.setEnableImgBufBeauty(true);
-        mStreamer.getImgTexFilterMgt().setOnErrorListener(new ImgTexFilterBase.OnErrorListener() {
-            @Override
-            public void onError(ImgTexFilterBase filter, int errno) {
-                Toast.makeText(PipActivity.this, "当前机型不支持该滤镜",
-                        Toast.LENGTH_SHORT).show();
-                mStreamer.getImgTexFilterMgt().setFilter(mStreamer.getGLRender(),
-                        ImgTexFilterMgt.KSY_FILTER_BEAUTY_DISABLE);
-            }
-        });
-
-        // touch focus and zoom support
-        mCameraTouchHelper = new CameraTouchHelper();
-        mCameraTouchHelper.setCameraCapture(mStreamer.getCameraCapture());
-        mCameraPreviewView.setOnTouchListener(mCameraTouchHelper);
-        // set CameraHintView to show focus rect and zoom ratio
-        mCameraTouchHelper.setCameraHintView(mCameraHintView);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        startCameraPreviewWithPermCheck();
         mStreamer.onResume();
-        if (mPipMode) {
-            mStreamer.getMediaPlayerCapture().getMediaPlayer().start();
-            mStreamer.getPictureCapture().start(this, mBgPicPath);
-        }
-        if (mWaterMarkCheckBox.isChecked()) {
-            showWaterMark();
-        }
+        mStreamer.getBgMusicCapture().getMediaPlayer().start();
+        mStreamer.getBgSoundEffectCapture().getMediaPlayer().start();
+        mStreamer.getBgUserVoiceCapture().getMediaPlayer().start();
     }
 
     @Override
     public void onPause() {
         super.onPause();
         mStreamer.onPause();
-        mStreamer.stopCameraPreview();
-        if (mPipMode) {
-            mStreamer.getMediaPlayerCapture().getMediaPlayer().pause();
-            mStreamer.getPictureCapture().stop();
-        }
-        hideWaterMark();
+        mStreamer.getBgMusicCapture().getMediaPlayer().pause();
+        mStreamer.getBgSoundEffectCapture().getMediaPlayer().pause();
+        mStreamer.getBgUserVoiceCapture().getMediaPlayer().pause();
     }
 
     @Override
@@ -310,8 +249,9 @@ public class PipActivity extends Activity implements
 
     private void startStream() {
         mStreamer.startStream();
-        mShootingText.setText(STOP_STRING);
-        mShootingText.postInvalidate();
+        mStartCheckBox.setText(STOP_STRING);
+        mStartCheckBox.setChecked(true);
+        mStartCheckBox.postInvalidate();
         mRecording = true;
     }
 
@@ -319,8 +259,9 @@ public class PipActivity extends Activity implements
         mStreamer.stopStream();
         mChronometer.setBase(SystemClock.elapsedRealtime());
         mChronometer.stop();
-        mShootingText.setText(START_STRING);
-        mShootingText.postInvalidate();
+        mStartCheckBox.setText(START_STRING);
+        mStartCheckBox.setChecked(false);
+        mStartCheckBox.postInvalidate();
         mRecording = false;
     }
 
@@ -356,64 +297,6 @@ public class PipActivity extends Activity implements
                 mStreamer.getCurrentUploadKBitrate(), mStreamer.getVersion());
     }
 
-    //show watermark in specific location
-    private void showWaterMark() {
-        if (!mIsLandscape) {
-            mStreamer.showWaterMarkLogo(mLogoPath, 0.08f, 0.04f, 0.20f, 0, 0.8f);
-            mStreamer.showWaterMarkTime(0.03f, 0.01f, 0.35f, Color.WHITE, 1.0f);
-        } else {
-            mStreamer.showWaterMarkLogo(mLogoPath, 0.05f, 0.09f, 0, 0.20f, 0.8f);
-            mStreamer.showWaterMarkTime(0.01f, 0.03f, 0.22f, Color.WHITE, 1.0f);
-        }
-    }
-
-    private void hideWaterMark() {
-        mStreamer.hideWaterMarkLogo();
-        mStreamer.hideWaterMarkTime();
-    }
-
-    private void startPip() {
-        if (mPipMode) {
-            return;
-        }
-        mPipMode = true;
-        mStreamer.getMediaPlayerCapture().getMediaPlayer()
-                .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(IMediaPlayer iMediaPlayer) {
-                Log.d(TAG, "End of the currently playing video");
-                mStreamer.showBgVideo(mPipPath);
-            }
-        });
-        mStreamer.getMediaPlayerCapture().getMediaPlayer()
-                .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
-                    @Override
-                    public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
-                        Log.e(TAG, "MediaPlayer error, what=" + what + " extra=" + extra);
-                        return false;
-                    }
-                });
-        mStreamer.showBgPicture(this, mBgPicPath);
-        mStreamer.showBgVideo(mPipPath);
-        mStreamer.getMediaPlayerCapture().getMediaPlayer().setVolume(0.4f, 0.4f);
-        mStreamer.setCameraPreviewRect(0.65f, 0.f, 0.35f, 0.3f);
-        // disable touch focus
-        mCameraTouchHelper.setEnableTouchFocus(false);
-    }
-
-    private void stopPip() {
-        if (!mPipMode) {
-            return;
-        }
-        mStreamer.hideBgPicture();
-        mStreamer.hideBgVideo();
-        mStreamer.setCameraPreviewRect(0.f, 0.f, 1.f, 1.f);
-        mPipMode = false;
-
-        // enable touch focus
-        mCameraTouchHelper.setEnableTouchFocus(true);
-    }
-
     // Example to handle camera related operation
     private void setCameraAntiBanding50Hz() {
         Camera.Parameters parameters = mStreamer.getCameraCapture().getCameraParameters();
@@ -442,7 +325,7 @@ public class PipActivity extends Activity implements
                     break;
                 case StreamerConstants.KSY_STREAMER_FRAME_SEND_SLOW:
                     Log.d(TAG, "KSY_STREAMER_FRAME_SEND_SLOW " + msg1 + "ms");
-                    Toast.makeText(PipActivity.this, "Network not good!",
+                    Toast.makeText(AudioActivity.this, "Network not good!",
                             Toast.LENGTH_SHORT).show();
                     break;
                 case StreamerConstants.KSY_STREAMER_EST_BW_RAISE:
@@ -540,13 +423,6 @@ public class PipActivity extends Activity implements
                 case StreamerConstants.KSY_STREAMER_AUDIO_RECORDER_ERROR_UNKNOWN:
                     break;
                 case StreamerConstants.KSY_STREAMER_CAMERA_ERROR_SERVER_DIED:
-                    mStreamer.stopCameraPreview();
-                    mMainHandler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            startCameraPreviewWithPermCheck();
-                        }
-                    }, 5000);
                     break;
                 case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNSUPPORTED:
                 case StreamerConstants.KSY_STREAMER_VIDEO_ENCODER_ERROR_UNKNOWN:
@@ -580,31 +456,8 @@ public class PipActivity extends Activity implements
         }
     };
 
-    private OnPreviewFrameListener mOnPreviewFrameListener = new OnPreviewFrameListener() {
-        @Override
-        public void onPreviewFrame(byte[] data, int width, int height, boolean isRecording) {
-            Log.d(TAG, "onPreviewFrame data.length=" + data.length + " " +
-                    width + "x" + height + " isRecording=" + isRecording);
-        }
-    };
-
-    private void onSwitchCamera() {
-        mStreamer.switchCamera();
-        mCameraHintView.hideAll();
-    }
-
-    private void onFlashClick() {
-        if (isFlashOpened) {
-            mStreamer.toggleTorch(false);
-            isFlashOpened = false;
-        } else {
-            mStreamer.toggleTorch(true);
-            isFlashOpened = true;
-        }
-    }
-
     private void onBackoffClick() {
-        new AlertDialog.Builder(PipActivity.this).setCancelable(true)
+        new AlertDialog.Builder(AudioActivity.this).setCancelable(true)
                 .setTitle("结束直播?")
                 .setNegativeButton("取消", new DialogInterface.OnClickListener() {
 
@@ -618,7 +471,7 @@ public class PipActivity extends Activity implements
                     public void onClick(DialogInterface arg0, int arg1) {
                         mChronometer.stop();
                         mRecording = false;
-                        PipActivity.this.finish();
+                        AudioActivity.this.finish();
                     }
                 }).show();
     }
@@ -629,37 +482,6 @@ public class PipActivity extends Activity implements
         } else {
             startStream();
         }
-    }
-
-    private void showChooseFilter() {
-        AlertDialog alertDialog;
-        alertDialog = new AlertDialog.Builder(this)
-                .setTitle("请选择美颜滤镜")
-                .setSingleChoiceItems(
-                        new String[]{"BEAUTY_SOFT", "SKIN_WHITEN", "BEAUTY_ILLUSION", "DENOISE",
-                                "BEAUTY_SMOOTH", "DEMOFILTER", "GROUP_FILTER"}, -1,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                if (which < 5) {
-                                    mStreamer.getImgTexFilterMgt().setFilter(
-                                            mStreamer.getGLRender(), which + 16);
-                                } else if (which == 5) {
-                                    mStreamer.getImgTexFilterMgt().setFilter(
-                                            new DemoFilter(mStreamer.getGLRender()));
-                                } else if (which == 6) {
-                                    List<ImgTexFilter> groupFilter = new LinkedList<>();
-                                    groupFilter.add(new DemoFilter2(mStreamer.getGLRender()));
-                                    groupFilter.add(new DemoFilter3(mStreamer.getGLRender()));
-                                    groupFilter.add(new DemoFilter4(mStreamer.getGLRender()));
-                                    mStreamer.getImgTexFilterMgt().setFilter(groupFilter);
-                                }
-                                dialog.dismiss();
-                            }
-                        })
-                .create();
-        alertDialog.setCancelable(false);
-        alertDialog.show();
     }
 
     boolean[] mChooseFilter = {false, false};
@@ -705,161 +527,109 @@ public class PipActivity extends Activity implements
         alertDialog.show();
     }
 
-    private void onBeautyChecked(boolean isChecked) {
-        if (isChecked) {
-            if (mStreamer.getVideoEncodeMethod() ==
-                    StreamerConstants.ENCODE_METHOD_SOFTWARE_COMPAT) {
-                mStreamer.getImgTexFilterMgt().setFilter(mStreamer.getGLRender(),
-                        ImgTexFilterMgt.KSY_FILTER_BEAUTY_DENOISE);
-                mStreamer.setEnableImgBufBeauty(true);
-            } else {
-                showChooseFilter();
-            }
-        } else {
-            mStreamer.getImgTexFilterMgt().setFilter(mStreamer.getGLRender(),
-                    ImgTexFilterMgt.KSY_FILTER_BEAUTY_DISABLE);
-            mStreamer.setEnableImgBufBeauty(false);
-        }
-    }
-
-    private void onAudioFilterChecked(boolean isChecked) {
-        showChooseAudioFilter();
-    }
-
-    private void onBgmChecked(boolean isChecked) {
+    private void onBgMusicChecked(boolean isChecked) {
         if (isChecked) {
             // use KSYMediaPlayer instead of KSYBgmPlayer
-            mStreamer.getAudioPlayerCapture().getMediaPlayer()
+            mStreamer.getBgMusicCapture().getMediaPlayer()
                     .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(IMediaPlayer iMediaPlayer) {
-                            Log.d(TAG, "End of the currently playing music");
+                            Log.d(BG_TAG, "Music: End of the currently playing music");
                         }
                     });
-            mStreamer.getAudioPlayerCapture().getMediaPlayer()
+            mStreamer.getBgMusicCapture().getMediaPlayer()
                     .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
                         @Override
                         public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
-                            Log.e(TAG, "OnErrorListener, Error:" + what + ", extra:" + extra);
+                            Log.e(BG_TAG, "Music: OnErrorListener, Error:" + what + ", extra:" + extra);
                             return false;
                         }
                     });
-            mStreamer.getAudioPlayerCapture().getMediaPlayer().setVolume(1.0f, 1.0f);
+            mStreamer.getBgMusicCapture().getMediaPlayer().setVolume(1.0f, 1.0f);
             mStreamer.setEnableAudioMix(true);
-            mStreamer.startBgm(mBgmPath, true);
+            mStreamer.startBgMusic(mBgMusicPath, true);
+            Log.d(BG_TAG, "Music: start");
         } else {
-            mStreamer.stopBgm();
+            mStreamer.stopBgMusic();
+            Log.d(BG_TAG, "Music: stop");
         }
     }
 
-    private void onAudioPreviewChecked(boolean isChecked) {
-        mStreamer.setEnableAudioPreview(isChecked);
-    }
-
-    private void onMuteChecked(boolean isChecked) {
-        mStreamer.setMuteAudio(isChecked);
-    }
-
-    private void onWaterMarkChecked(boolean isChecked) {
-        if (isChecked)
-            showWaterMark();
-        else
-            hideWaterMark();
-    }
-
-    private void onFrontMirrorChecked(boolean isChecked) {
-        mStreamer.setFrontCameraMirror(isChecked);
-    }
-
-    private void onAudioOnlyChecked(boolean isChecked) {
-        mStreamer.setAudioOnly(isChecked);
-    }
-
-    private void onPipChecked(boolean isChecked) {
+    private void onBgSoundEffectChecked(boolean isChecked) {
         if (isChecked) {
-            startPip();
+            // use KSYMediaPlayer instead of KSYBgmPlayer
+            mStreamer.getBgSoundEffectCapture().getMediaPlayer()
+                    .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(IMediaPlayer iMediaPlayer) {
+                            Log.d(BG_TAG, "SoundEffect:End of the currently playing music");
+                        }
+                    });
+            mStreamer.getBgSoundEffectCapture().getMediaPlayer()
+                    .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
+                        @Override
+                        public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
+                            Log.e(BG_TAG, "SoundEffect:OnErrorListener, Error:" + what + ", extra:" + extra);
+                            return false;
+                        }
+                    });
+            mStreamer.getBgSoundEffectCapture().getMediaPlayer().setVolume(1.0f, 1.0f);
+            mStreamer.setEnableAudioMix(true);
+            mStreamer.startBgSoundEffect(mBgSoundEffectPath, false);
+            Log.d(BG_TAG, "SoundEffect: start");
         } else {
-            stopPip();
+            mStreamer.stopBgSoundEffect();
+            Log.d(BG_TAG, "SoundEffect: stop");
         }
     }
 
-    private class ButtonObserver implements View.OnClickListener {
+    private void onBgUserVoiceChecked(boolean isChecked) {
+        if (isChecked) {
+            // use KSYMediaPlayer instead of KSYBgmPlayer
+            mStreamer.getBgUserVoiceCapture().getMediaPlayer()
+                    .setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(IMediaPlayer iMediaPlayer) {
+                            Log.d(BG_TAG, "UserVoice: End of the currently playing music");
+                        }
+                    });
+            mStreamer.getBgUserVoiceCapture().getMediaPlayer()
+                    .setOnErrorListener(new IMediaPlayer.OnErrorListener() {
+                        @Override
+                        public boolean onError(IMediaPlayer iMediaPlayer, int what, int extra) {
+                            Log.e(BG_TAG, "UserVoice: OnErrorListener, Error:" + what + ", extra:" + extra);
+                            return false;
+                        }
+                    });
+            mStreamer.getBgUserVoiceCapture().getMediaPlayer().setVolume(1.0f, 1.0f);
+            mStreamer.setEnableAudioMix(true);
+            mStreamer.startBgUserVoice(mBgUserVoicePath, false);
+            Log.d(BG_TAG, "UserVoice: start");
+        } else {
+            mStreamer.stopBgUserVoice();
+            Log.d(BG_TAG, "UserVoice: stop");
+        }
+    }
+
+    private class CheckBoxObserver implements CompoundButton.OnCheckedChangeListener {
         @Override
-        public void onClick(View view) {
-            switch (view.getId()) {
-                case R.id.switch_cam:
-                    onSwitchCamera();
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            switch (buttonView.getId()) {
+                case R.id.cb_Bg_Music:
+                    onBgMusicChecked(isChecked);
                     break;
-                case R.id.backoff:
-                    onBackoffClick();
+                case R.id.cb_Bg_Sound_Effect:
+                    onBgSoundEffectChecked(isChecked);
                     break;
-                case R.id.flash:
-                    onFlashClick();
+                case R.id.cb_Bg_User_Voice:
+                    onBgUserVoiceChecked(isChecked);
                     break;
-                case R.id.click_to_shoot:
+                case R.id.cb_Start:
                     onShootClick();
                     break;
                 default:
                     break;
             }
-        }
-    }
-
-    private class CheckBoxObserver implements CompoundButton.OnCheckedChangeListener {
-
-        @Override
-        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-            switch (buttonView.getId()) {
-                case R.id.click_to_switch_beauty:
-                    onBeautyChecked(isChecked);
-                    break;
-                case R.id.click_to_select_audio_filter:
-                    onAudioFilterChecked(isChecked);
-                    break;
-                case R.id.bgm:
-                    onBgmChecked(isChecked);
-                    break;
-                case R.id.ear_mirror:
-                    onAudioPreviewChecked(isChecked);
-                    break;
-                case R.id.mute:
-                    onMuteChecked(isChecked);
-                    break;
-                case R.id.watermark:
-                    onWaterMarkChecked(isChecked);
-                    break;
-                case R.id.front_camera_mirror:
-                    onFrontMirrorChecked(isChecked);
-                    break;
-                case R.id.audio_only:
-                    onAudioOnlyChecked(isChecked);
-                    break;
-                case R.id.pip:
-                    onPipChecked(isChecked);
-                default:
-                    break;
-            }
-        }
-    }
-
-    private void startCameraPreviewWithPermCheck() {
-        int cameraPerm = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
-        int audioPerm = ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO);
-        if (cameraPerm != PackageManager.PERMISSION_GRANTED ||
-                audioPerm != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                Log.e(TAG, "No CAMERA or AudioRecord permission, please check");
-                Toast.makeText(this, "No CAMERA or AudioRecord permission, please check",
-                        Toast.LENGTH_LONG).show();
-            } else {
-                String[] permissions = {Manifest.permission.CAMERA,
-                        Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.READ_EXTERNAL_STORAGE};
-                ActivityCompat.requestPermissions(this, permissions,
-                        PERMISSION_REQUEST_CAMERA_AUDIOREC);
-            }
-        } else {
-            mStreamer.startCameraPreview();
         }
     }
 

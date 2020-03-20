@@ -116,7 +116,7 @@ public class DemoActivity extends Activity implements OnClickListener {
                     startAuto = mAutoStartCheckBox.isChecked();
                     showDebugInfo = mShowDebugInfoCheckBox.isChecked();
 
-                    PipActivity.startActivity(getApplicationContext(), 0,
+                    AudioActivity.startActivity(getApplicationContext(), 0,
                             mUrlEditText.getText().toString(), frameRate, videoBitRate,
                             audioBitRate, videoResolution, landscape, encodeMethod,
                             startAuto, showDebugInfo);

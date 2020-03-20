@@ -58,13 +58,14 @@ public class MediaPlayerCapture implements SurfaceTexture.OnFrameAvailableListen
         return mMediaPlayer;
     }
 
-    public void start(String url) {
+    public void start(String url, boolean looping) {
         mAudioBufFormat = null;
         getMediaPlayer();
         mMediaPlayer.reset();
         mMediaPlayer.shouldAutoPlay(false);
         mMediaPlayer.setOnAudioPCMAvailableListener(mOnAudioPCMListener);
         mMediaPlayer.setOnPreparedListener(mOnPreparedListener);
+        mMediaPlayer.setLooping(looping);
         try {
             mMediaPlayer.setDataSource(url);
             mMediaPlayer.prepareAsync();
