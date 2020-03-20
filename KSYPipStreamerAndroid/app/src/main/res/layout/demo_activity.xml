@@ -27,19 +27,38 @@
             android:layout_below="@id/rtmpTxt"
             android:text="rtmp://upstream.omwchat.com/dudu_test/lalala123456" />
 
-        <Button
-            android:id="@+id/connectBT"
+        <LinearLayout
+            android:id="@+id/ll_Live_Type"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:layout_below="@id/rtmpUrl"
-            android:text="准备直播" />
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:layout_below="@+id/rtmpUrl">
+            <Button
+                android:id="@+id/connectAudioOnly"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:text="纯音乐直播"/>
+
+            <Button
+                android:id="@+id/connectPip"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="16dp"
+                android:text="画中画直播" />
+        </LinearLayout>
+
 
         <RadioGroup
             android:id="@+id/resolution_group"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/connectBT"
+            android:layout_below="@id/ll_Live_Type"
             android:orientation="horizontal">
 
             <RadioButton

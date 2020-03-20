@@ -1,6 +1,5 @@
 package com.ksyun.media.diversity.pipstreamer.demo;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -8,10 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.hardware.Camera;
-import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -20,7 +16,6 @@ import android.support.v4.app.ActivityCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.CheckBox;
@@ -36,11 +31,7 @@ import com.ksyun.media.streamer.capture.camera.CameraTouchHelper;
 import com.ksyun.media.streamer.demo.R;
 import com.ksyun.media.streamer.filter.audio.AudioFilterBase;
 import com.ksyun.media.streamer.filter.audio.AudioReverbFilter;
-import com.ksyun.media.streamer.filter.imgtex.ImgTexFilter;
-import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterBase;
-import com.ksyun.media.streamer.filter.imgtex.ImgTexFilterMgt;
 import com.ksyun.media.streamer.kit.OnAudioRawDataListener;
-import com.ksyun.media.streamer.kit.OnPreviewFrameListener;
 import com.ksyun.media.streamer.kit.StreamerConstants;
 import com.ksyun.media.streamer.logstats.StatsLogReport;
 
@@ -65,6 +56,7 @@ public class AudioActivity extends Activity implements
     private TextView mUrlTextView;
     private TextView mDebugInfoTextView;
     private CheckBox mStartCheckBox;
+    private CheckBox mAudioPreviewCheckBox;
 
     private CheckBoxObserver mCheckBoxObserver;
 
@@ -146,6 +138,8 @@ public class AudioActivity extends Activity implements
         mBgUserVoiceCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
         mStartCheckBox = (CheckBox) findViewById(R.id.cb_Start);
         mStartCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mAudioPreviewCheckBox = (CheckBox) findViewById(R.id.cb_Audio_Preview);
+        mAudioPreviewCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
 
         mMainHandler = new Handler();
         mStreamer = new KSYAudioStreamer(this);
@@ -611,6 +605,10 @@ public class AudioActivity extends Activity implements
         }
     }
 
+    private void onAudioPreviewChecked(boolean isChecked) {
+        mStreamer.setEnableAudioPreview(isChecked);
+    }
+
     private class CheckBoxObserver implements CompoundButton.OnCheckedChangeListener {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -627,6 +625,9 @@ public class AudioActivity extends Activity implements
                 case R.id.cb_Start:
                     onShootClick();
                     break;
+                case R.id.cb_Audio_Preview: {
+                    onAudioPreviewChecked(isChecked);
+                }
                 default:
                     break;
             }

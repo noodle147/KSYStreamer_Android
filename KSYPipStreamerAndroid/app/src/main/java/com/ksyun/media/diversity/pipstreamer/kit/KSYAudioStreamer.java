@@ -47,6 +47,30 @@ public class KSYAudioStreamer extends KSYStreamer {
         mBgUserVoiceCapture.release();
     }
 
+    @Override
+    public void setMuteAudio(boolean enable) {
+        super.setMuteAudio(enable);
+        if(!isAudioPreviewing()) {
+            mBgMusicCapture.getMediaPlayer().setPlayerMute(enable ? 1 : 0);
+            mBgSoundEffectCapture.getMediaPlayer().setPlayerMute(enable ? 1 : 0);
+            mBgUserVoiceCapture.getMediaPlayer().setPlayerMute(enable ? 1 : 0);
+        }
+    }
+
+    @Override
+    public void setEnableAudioPreview(boolean enable) {
+        super.setEnableAudioPreview(enable);
+        if(!isAudioMuted()) {
+            mBgMusicCapture.getMediaPlayer().setPlayerMute(enable ? 1 : 0);
+            mBgSoundEffectCapture.getMediaPlayer().setPlayerMute(enable ? 1 : 0);
+            mBgUserVoiceCapture.getMediaPlayer().setPlayerMute(enable ? 1 : 0);
+        } else {
+            mBgMusicCapture.getMediaPlayer().setPlayerMute(1);
+            mBgSoundEffectCapture.getMediaPlayer().setPlayerMute(1);
+            mBgUserVoiceCapture.getMediaPlayer().setPlayerMute(1);
+        }
+    }
+
     public void startBgMusic(String uri, boolean looping) {
         mBgMusicCapture.start(uri, looping);
     }

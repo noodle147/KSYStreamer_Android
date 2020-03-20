@@ -16,7 +16,8 @@ import com.ksyun.media.streamer.kit.StreamerConstants;
 
 public class DemoActivity extends Activity implements OnClickListener {
     private static final String TAG = DemoActivity.class.getSimpleName();
-    private Button mConnectButton;
+    private Button mConnectPipButton;
+    private Button mConnectAudioOnlyButton;
     private EditText mUrlEditText;
     private EditText mFrameRateEditText;
     private EditText mVideoBitRateEditText;
@@ -41,8 +42,10 @@ public class DemoActivity extends Activity implements OnClickListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.demo_activity);
 
-        mConnectButton = (Button) findViewById(R.id.connectBT);
-        mConnectButton.setOnClickListener(this);
+        mConnectPipButton = (Button) findViewById(R.id.connectPip);
+        mConnectPipButton.setOnClickListener(this);
+        mConnectAudioOnlyButton = (Button) findViewById(R.id.connectAudioOnly);
+        mConnectAudioOnlyButton.setOnClickListener(this);
 
         mUrlEditText = (EditText) findViewById(R.id.rtmpUrl);
         mFrameRateEditText = (EditText) findViewById(R.id.frameRatePicker);
@@ -67,7 +70,8 @@ public class DemoActivity extends Activity implements OnClickListener {
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.connectBT:
+            case R.id.connectAudioOnly:
+            case R.id.connectPip:
                 int frameRate = 0;
                 int videoBitRate = 0;
                 int audioBitRate = 0;
@@ -116,10 +120,17 @@ public class DemoActivity extends Activity implements OnClickListener {
                     startAuto = mAutoStartCheckBox.isChecked();
                     showDebugInfo = mShowDebugInfoCheckBox.isChecked();
 
-                    AudioActivity.startActivity(getApplicationContext(), 0,
-                            mUrlEditText.getText().toString(), frameRate, videoBitRate,
-                            audioBitRate, videoResolution, landscape, encodeMethod,
-                            startAuto, showDebugInfo);
+                    if(view.getId() == R.id.connectAudioOnly) {
+                        AudioActivity.startActivity(getApplicationContext(), 0,
+                                mUrlEditText.getText().toString(), frameRate, videoBitRate,
+                                audioBitRate, videoResolution, landscape, encodeMethod,
+                                startAuto, showDebugInfo);
+                    } else if(view.getId() == R.id.connectPip) {
+                        PipActivity.startActivity(getApplicationContext(), 0,
+                                mUrlEditText.getText().toString(), frameRate, videoBitRate,
+                                audioBitRate, videoResolution, landscape, encodeMethod,
+                                startAuto, showDebugInfo);
+                    }
                 }
                 break;
             default:

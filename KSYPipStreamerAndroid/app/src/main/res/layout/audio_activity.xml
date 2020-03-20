@@ -73,6 +73,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="16dp"
                 android:text="开始直播"/>
+
+            <CheckBox
+                android:id="@+id/cb_Audio_Preview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:text="耳返"/>
         </LinearLayout>
     </LinearLayout>
 </RelativeLayout>
