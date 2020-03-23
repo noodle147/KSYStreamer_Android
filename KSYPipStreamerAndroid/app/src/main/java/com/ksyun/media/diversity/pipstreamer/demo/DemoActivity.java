@@ -81,8 +81,7 @@ public class DemoActivity extends Activity implements OnClickListener {
                 boolean startAuto;
                 boolean showDebugInfo;
 
-                if (!TextUtils.isEmpty(mUrlEditText.getText())
-					&& mUrlEditText.getText().toString().startsWith("rtmp")) {
+                if (!TextUtils.isEmpty(mUrlEditText.getText())) {
                     if (!TextUtils.isEmpty(mFrameRateEditText.getText().toString())) {
                         frameRate = Integer.parseInt(mFrameRateEditText.getText()
                                 .toString());
@@ -122,12 +121,12 @@ public class DemoActivity extends Activity implements OnClickListener {
 
                     if(view.getId() == R.id.connectAudioOnly) {
                         AudioActivity.startActivity(getApplicationContext(), 0,
-                                mUrlEditText.getText().toString(), frameRate, videoBitRate,
+                                "rtmp://upstream.omwchat.com/dudu_test/" + mUrlEditText.getText().toString(), frameRate, videoBitRate,
                                 audioBitRate, videoResolution, landscape, encodeMethod,
                                 startAuto, showDebugInfo);
                     } else if(view.getId() == R.id.connectPip) {
                         PipActivity.startActivity(getApplicationContext(), 0,
-                                mUrlEditText.getText().toString(), frameRate, videoBitRate,
+                                "rtmp://upstream.omwchat.com/dudu_test/" + mUrlEditText.getText().toString(), frameRate, videoBitRate,
                                 audioBitRate, videoResolution, landscape, encodeMethod,
                                 startAuto, showDebugInfo);
                     }

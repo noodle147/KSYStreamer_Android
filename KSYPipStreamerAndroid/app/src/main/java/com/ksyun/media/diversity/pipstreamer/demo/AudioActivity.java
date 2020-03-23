@@ -16,14 +16,17 @@ import android.support.v4.app.ActivityCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.Chronometer;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.ksyun.media.diversity.pipstreamer.capture.MediaPlayerCapture;
 import com.ksyun.media.diversity.pipstreamer.kit.KSYAudioStreamer;
 import com.ksyun.media.diversity.pipstreamer.kit.KSYPipStreamer;
 import com.ksyun.media.player.IMediaPlayer;
@@ -57,6 +60,7 @@ public class AudioActivity extends Activity implements
     private TextView mDebugInfoTextView;
     private CheckBox mStartCheckBox;
     private CheckBox mAudioPreviewCheckBox;
+    private CheckBox mOtherMusic;
 
     private CheckBoxObserver mCheckBoxObserver;
 
@@ -140,6 +144,16 @@ public class AudioActivity extends Activity implements
         mStartCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
         mAudioPreviewCheckBox = (CheckBox) findViewById(R.id.cb_Audio_Preview);
         mAudioPreviewCheckBox.setOnCheckedChangeListener(mCheckBoxObserver);
+        mOtherMusic = (CheckBox) findViewById(R.id.cb_Other_Music);
+        mOtherMusic.setOnCheckedChangeListener(mCheckBoxObserver);
+
+        ImageView ivBack = (ImageView) findViewById(R.id.iv_Back);
+        ivBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackoffClick();
+            }
+        });
 
         mMainHandler = new Handler();
         mStreamer = new KSYAudioStreamer(this);
@@ -196,6 +210,8 @@ public class AudioActivity extends Activity implements
         mStreamer.setOnLogEventListener(mOnLogEventListener);
         //mStreamer.setOnAudioRawDataListener(mOnAudioRawDataListener);
         //mStreamer.setOnPreviewFrameListener(mOnPreviewFrameListener);
+
+        otherMusicPlayer = new MediaPlayerCapture(this, mStreamer.getGLRender());
     }
 
     @Override
@@ -205,6 +221,7 @@ public class AudioActivity extends Activity implements
         mStreamer.getBgMusicCapture().getMediaPlayer().start();
         mStreamer.getBgSoundEffectCapture().getMediaPlayer().start();
         mStreamer.getBgUserVoiceCapture().getMediaPlayer().start();
+        otherMusicPlayer.getMediaPlayer().start();
     }
 
     @Override
@@ -214,6 +231,7 @@ public class AudioActivity extends Activity implements
         mStreamer.getBgMusicCapture().getMediaPlayer().pause();
         mStreamer.getBgSoundEffectCapture().getMediaPlayer().pause();
         mStreamer.getBgUserVoiceCapture().getMediaPlayer().pause();
+        otherMusicPlayer.getMediaPlayer().pause();
     }
 
     @Override
@@ -227,6 +245,7 @@ public class AudioActivity extends Activity implements
             mTimer.cancel();
         }
         mStreamer.release();
+        otherMusicPlayer.release();
     }
 
     @Override
@@ -609,6 +628,15 @@ public class AudioActivity extends Activity implements
         mStreamer.setEnableAudioPreview(isChecked);
     }
 
+    private MediaPlayerCapture otherMusicPlayer;
+    private void onOtherMusicChecked(boolean isChecked) {
+        if(isChecked) {
+            otherMusicPlayer.start(mBgSoundEffectPath, false);
+        } else {
+            otherMusicPlayer.stop();
+        }
+    }
+
     private class CheckBoxObserver implements CompoundButton.OnCheckedChangeListener {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -625,9 +653,15 @@ public class AudioActivity extends Activity implements
                 case R.id.cb_Start:
                     onShootClick();
                     break;
-                case R.id.cb_Audio_Preview: {
+                case R.id.cb_Audio_Preview:
                     onAudioPreviewChecked(isChecked);
-                }
+                    break;
+                case R.id.backoff:
+                    onBackoffClick();
+                    break;
+                case R.id.cb_Other_Music:
+                    onOtherMusicChecked(isChecked);
+                    break;
                 default:
                     break;
             }

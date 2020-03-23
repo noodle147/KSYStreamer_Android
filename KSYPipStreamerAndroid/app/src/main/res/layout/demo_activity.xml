@@ -25,7 +25,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/rtmpTxt"
-            android:text="rtmp://upstream.omwchat.com/dudu_test/lalala123456" />
+            android:hint="输入直播号"
+            />
 
         <LinearLayout
             android:id="@+id/ll_Live_Type"
