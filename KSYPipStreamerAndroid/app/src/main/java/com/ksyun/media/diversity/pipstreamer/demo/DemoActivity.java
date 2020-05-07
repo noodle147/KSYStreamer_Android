@@ -11,6 +11,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.RadioButton;
 
+import com.ksyun.media.diversity.pipstreamer.MD5Helper;
 import com.ksyun.media.streamer.demo.R;
 import com.ksyun.media.streamer.kit.StreamerConstants;
 
@@ -119,14 +120,28 @@ public class DemoActivity extends Activity implements OnClickListener {
                     startAuto = mAutoStartCheckBox.isChecked();
                     showDebugInfo = mShowDebugInfoCheckBox.isChecked();
 
+                    String appNameAndStreamName = mUrlEditText.getText().toString();
+                    String[] strArray = appNameAndStreamName.split("/");
+                    if(strArray.length != 2) {
+                        break;
+                    }
+                    String appName = strArray[0];
+                    String streamName = strArray[1];
+                    String key = "";
+                    long t = System.currentTimeMillis() / 1000;
+                    String input = key + streamName + t;
+                    String result = MD5Helper.getMD5(input);
+                    result = result.substring(8, 24);
+                    String pushString = "rtmp://upstream.omwchat.com/" + appName + "/" + streamName + "?t=" + t + "&k=" + result;
+
                     if(view.getId() == R.id.connectAudioOnly) {
-                        AudioActivity.startActivity(getApplicationContext(), 0,
-                                "rtmp://upstream.omwchat.com/dudu_test/" + mUrlEditText.getText().toString(), frameRate, videoBitRate,
+                        AudioActivity.startActivity(getApplicationContext(), 0, pushString, frameRate, videoBitRate,
                                 audioBitRate, videoResolution, landscape, encodeMethod,
                                 startAuto, showDebugInfo);
                     } else if(view.getId() == R.id.connectPip) {
                         PipActivity.startActivity(getApplicationContext(), 0,
-                                "rtmp://upstream.omwchat.com/dudu_test/" + mUrlEditText.getText().toString(), frameRate, videoBitRate,
+                                pushString,
+                                frameRate, videoBitRate,
                                 audioBitRate, videoResolution, landscape, encodeMethod,
                                 startAuto, showDebugInfo);
                     }
